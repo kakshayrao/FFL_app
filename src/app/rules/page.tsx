@@ -6,7 +6,7 @@ export default function RulesPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-rfl-navy mb-2">PFL Rules & Guidelines</h1>
+        <h1 className="text-3xl font-bold text-rfl-navy mb-2">FFL Rules & Guidelines</h1>
         <p className="text-gray-600">Clear, simple rules for a fair and fun season — PWA‑friendly on phone and desktop.</p>
       </div>
 
@@ -110,7 +110,7 @@ export default function RulesPage() {
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <Clock className="w-6 h-6 text-rfl-light-blue mt-0.5 flex-shrink-0" />
-              <span className="text-sm sm:text-base"><strong>Workout Submission:</strong> Post your approved workout with screenshot in the PFL website by 11:59pm. Your captain/VC will send them all to Governors in provided format.</span>
+              <span className="text-sm sm:text-base"><strong>Workout Submission:</strong> Post your approved workout with screenshot in the FFL website by 11:59pm. Your captain/VC will send them all to Governors in provided format.</span>
             </div>
             <div className="flex items-start gap-3">
               <Trophy className="w-6 h-6 text-yellow-500 mt-0.5 flex-shrink-0" />
@@ -134,7 +134,7 @@ export default function RulesPage() {
             </div>
             <div className="flex items-start gap-3">
               <ShieldCheck className="w-6 h-6 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <span className="text-sm sm:text-base"><strong>Fair Play:</strong> "PFL FAIR PLAY" award for honesty and sportsmanship. <em>Negative points possible</em> for cheating.</span>
+              <span className="text-sm sm:text-base"><strong>Fair Play:</strong> "FFL FAIR PLAY" award for honesty and sportsmanship. <em>Negative points possible</em> for cheating.</span>
             </div>
             <div className="flex items-start gap-3">
               <Users className="w-6 h-6 text-rfl-light-blue mt-0.5 flex-shrink-0" />
@@ -257,7 +257,7 @@ export default function RulesPage() {
           </div>
           <div className="flex items-start gap-3">
             <Trophy className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-            <span className="text-sm sm:text-base"><strong>Prizes:</strong> Winner ₹25,000 • Runner ₹15,000 • Third ₹10,000 • PFL FAIR PLAY award + team/individual prizes.</span>
+            <span className="text-sm sm:text-base"><strong>Prizes:</strong> Winner ₹25,000 • Runner ₹15,000 • Third ₹10,000 • FFL FAIR PLAY award + team/individual prizes.</span>
           </div>
         </CardContent>
       </Card>

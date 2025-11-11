@@ -274,6 +274,7 @@ export function Navbar() {
   if (role === 'governor') {
     return (
       <nav className="bg-rfl-navy text-white shadow-lg">
+      {/* <nav className="navbar-gradient text-white shadow-lg"> */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -363,6 +364,7 @@ export function Navbar() {
 
   return (
     <nav className="bg-rfl-navy text-white shadow-lg">
+    {/* <nav className="navbar-gradient text-white shadow-lg"> */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* RFL Logo/Brand */}
@@ -372,8 +374,8 @@ export function Navbar() {
                 <img src="/img/PFL_Logo.jpeg" alt="PFL Logo" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h1 className="text-lg font-bold">PFL</h1>
-                <p className="text-xs text-gray-300">Pristine Fitness League</p>
+                <h1 className="text-lg font-bold">FFL</h1>
+                <p className="text-xs text-gray-300">Family Fitness League</p>
               </div>
             </Link>
           </div>
@@ -391,7 +393,7 @@ export function Navbar() {
                   href={item.href}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-rfl-coral text-white'
+                      ? 'text-white hover:bg-rfl-light-blue'
                       : 'text-gray-300 hover:text-white hover:bg-rfl-light-blue'
                   }`}
                 >

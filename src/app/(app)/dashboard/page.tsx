@@ -646,8 +646,8 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Button disabled={!canLogToday} className="bg-rfl-coral hover:bg-rfl-coral/90 h-8 flex-1 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenWorkout(true); }}>Add Workout</Button>
-              <Button disabled={!canLogToday} variant="outline" className="h-8 flex-1 border-rfl-navy text-rfl-navy hover:bg-rfl-navy/10 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenRest(true); }}>Add Rest Day</Button>
+              <Button disabled={!canLogToday} className="bg-rfl-navy hover:bg-rfl-navy/70 text-white h-8 flex-1 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenWorkout(true); }}>Add Workout</Button>
+              <Button disabled={!canLogToday} variant="outline" className="h-8 flex-1 border-black text-rfl-navy hover:bg-rfl-navy/70 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenRest(true); }}>Add Rest Day</Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -724,7 +724,7 @@ export default function DashboardPage() {
                     <div className="text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white">Position #{teamPosition}</div>
                   ) : null}
                 </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center ">
                   <div className="p-3 bg-rfl-peach/50 rounded">
                   <div className="text-xs text-gray-600">Points</div>
                     <div className="text-lg font-bold text-rfl-coral">{teamPoints ?? '—'}</div>

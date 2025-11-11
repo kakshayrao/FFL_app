@@ -231,7 +231,7 @@ export default function LeaderboardsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-rfl-navy mb-2">Leaderboard</h1>
-          <p className="text-gray-600">🔥 Today’s Leaderboard – Track your team’s race to the top!</p>
+          <p className="text-gray-600">Today’s Leaderboard 🔥 – Track your team’s race to the top!</p>
         </div>
 
         <div className="space-y-6">
