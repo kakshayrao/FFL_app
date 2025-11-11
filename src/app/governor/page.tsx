@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, Info, Plus, Pencil, Trash2, Save, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { getSupabase } from '@/lib/supabase'
@@ -11,6 +11,16 @@ type IndividualRow = { user_id: string; first_name?: string; last_name?: string;
 type Team = { id: string; name: string }
 type Account = { id: string; first_name: string | null; last_name: string | null; username: string | null; team_id: string | null }
 type LeagueAccount = { id: string; role?: string | null; team_id?: string | null; age?: number | null; gender?: string | null }
+
+// Local-only data model (will be wired to DB later)
+type Challenge = {
+  id: string;
+  name: string;
+  description: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+  scores: Record<string, number | null>; // key: team_id
+};
 
 // Display-only proportional adjustment for 13-player teams
 const THIRTEEN_PLAYER_TEAMS = new Set<string>([
@@ -73,6 +83,143 @@ export default function GovernorPage() {
   }, []);
   const [ilbPage, setIlbPage] = useState<number>(1);
   const ilbPageSize = 10;
+
+  // Special Challenges (local state; to be wired later)
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [descOpenId, setDescOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ name: string; description: string; start_date: string; end_date: string }>({
+    name: '',
+    description: '',
+    start_date: '',
+    end_date: '',
+  });
+
+  function generateUuid() {
+    try { return crypto.randomUUID(); } catch { return `ch_${Date.now()}`; }
+  }
+  function emptyScores(teamList: Team[]) {
+    const s: Record<string, number | null> = {};
+    for (const t of teamList) s[String(t.id)] = null;
+    return s;
+  }
+  function openCreate() {
+    setDraft({ name: '', description: '', start_date: '', end_date: '' });
+    setCreateOpen(true);
+  }
+  async function addChallenge() {
+    if (!draft.name.trim()) return;
+    const payload = {
+      name: draft.name.trim(),
+      description: draft.description.trim(),
+      start_date: draft.start_date || null,
+      end_date: draft.end_date || null,
+    } as any;
+    const { data, error } = await getSupabase()
+      .from('special_challenges')
+      .insert(payload)
+      .select('id,name,description,start_date,end_date')
+      .single();
+    if (error) {
+      alert(`Create failed: ${error.message}`);
+      return;
+    }
+    const row: Challenge = {
+      id: String(data.id),
+      name: String(data.name),
+      description: data.description || '',
+      start_date: data.start_date || '',
+      end_date: data.end_date || '',
+      scores: emptyScores(teams),
+    };
+    setChallenges(prev => [row, ...prev]);
+    setCreateOpen(false);
+  }
+  function startEdit(id: string) {
+    setEditingId(id);
+  }
+  function cancelEdit() {
+    setEditingId(null);
+  }
+  async function saveEdit(id: string, payload: Partial<Challenge>) {
+    // Find the row from state
+    const current = challenges.find(c => c.id === id);
+    if (!current) { setEditingId(null); return; }
+
+    // Update core fields
+    const upd = {
+      name: current.name,
+      description: current.description,
+      start_date: current.start_date || null,
+      end_date: current.end_date || null,
+    } as any;
+    const { error: updErr } = await getSupabase()
+      .from('special_challenges')
+      .update(upd)
+      .eq('id', id);
+    if (updErr) {
+      alert(`Save failed (challenge): ${updErr.message}`);
+      return;
+    }
+
+    // Upsert non-null scores
+    const upsertRows: Array<{ challenge_id: string; team_id: string; score: number | null }> = [];
+    const deleteTeamIds: string[] = [];
+    for (const t of teams) {
+      const tid = String(t.id);
+      const val = current.scores[tid];
+      if (val === null || val === undefined || val === '' as any) {
+        deleteTeamIds.push(tid);
+      } else {
+        upsertRows.push({ challenge_id: id, team_id: tid, score: Number(val) });
+      }
+    }
+    if (upsertRows.length) {
+      const { error: upErr } = await getSupabase()
+        .from('special_challenge_team_scores')
+        .upsert(upsertRows, { onConflict: 'challenge_id,team_id' });
+      if (upErr) {
+        alert(`Save failed (scores): ${upErr.message}`);
+        return;
+      }
+    }
+    if (deleteTeamIds.length) {
+      const { error: delErr } = await getSupabase()
+        .from('special_challenge_team_scores')
+        .delete()
+        .eq('challenge_id', id)
+        .in('team_id', deleteTeamIds);
+      if (delErr) {
+        alert(`Save failed (clear scores): ${delErr.message}`);
+        return;
+      }
+    }
+
+    // Update local state last
+    setChallenges(prev => prev.map(ch => ch.id === id ? { ...ch, ...payload } : ch));
+    setEditingId(null);
+  }
+  async function deleteChallenge(id: string) {
+    if (!confirm('Delete this challenge?')) return;
+    const { error } = await getSupabase()
+      .from('special_challenges')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      alert(`Delete failed: ${error.message}`);
+      return;
+    }
+    setChallenges(prev => prev.filter(ch => ch.id !== id));
+  }
+  function setScore(challengeId: string, teamId: string, value: string) {
+    const parsed = value === '' ? null : Number(value);
+    if (parsed !== null && Number.isNaN(parsed)) return;
+    setChallenges(prev => prev.map(ch => {
+      if (ch.id !== challengeId) return ch;
+      return { ...ch, scores: { ...ch.scores, [teamId]: parsed } };
+    }));
+  }
 
   // Gate by role and compute as-of (yesterday local)
   useEffect(() => {
@@ -152,11 +299,12 @@ export default function GovernorPage() {
         const teamRows: TeamRow[] = teamList.map(t => {
           const agg = teamAgg.get(String(t.id)) || { points: 0, rrSum: 0, rrCnt: 0 };
           const avg = agg.rrCnt > 0 ? Math.round((agg.rrSum / agg.rrCnt) * 100) / 100 : 0;
-          let pts = agg.points;
+          let adjusted = agg.points;
           if (THIRTEEN_PLAYER_TEAMS.has(String(t.id))) {
-            pts = Math.round(pts * THIRTEEN_TEAM_FACTOR * 100) / 100;
+            adjusted = agg.points * THIRTEEN_TEAM_FACTOR;
           }
-          return { team_id: String(t.id), team_name: String(t.name), points: pts, avg_rr: avg } as TeamRow;
+          const pointsRounded = Math.round(adjusted);
+          return { team_id: String(t.id), team_name: String(t.name), points: pointsRounded, avg_rr: avg } as TeamRow;
         });
         setTeamLeaderboard(teamRows);
 
@@ -206,6 +354,36 @@ export default function GovernorPage() {
             return { received_at: row.received_at, ...ev } as { received_at: string } & Record<string, any>;
           });
           setAnalyticsEvents(events);
+        }
+
+        // ---- Load Special Challenges + scores ----
+        {
+          const { data: chRows } = await getSupabase()
+            .from('special_challenges')
+            .select('id,name,description,start_date,end_date')
+            .order('created_at', { ascending: false });
+          const { data: scRows } = await getSupabase()
+            .from('special_challenge_team_scores')
+            .select('challenge_id,team_id,score');
+          const byId = new Map<string, Challenge>();
+          (chRows || []).forEach((r: any) => {
+            byId.set(String(r.id), {
+              id: String(r.id),
+              name: String(r.name),
+              description: r.description || '',
+              start_date: r.start_date || '',
+              end_date: r.end_date || '',
+              scores: emptyScores(teamList),
+            });
+          });
+          (scRows || []).forEach((r: any) => {
+            const id = String(r.challenge_id);
+            const tid = String(r.team_id);
+            if (!byId.has(id)) return;
+            const ch = byId.get(id)!;
+            ch.scores[tid] = r.score === null || r.score === undefined ? null : Number(r.score);
+          });
+          setChallenges(Array.from(byId.values()));
         }
       } finally {
         setLoading(false);
@@ -481,39 +659,162 @@ export default function GovernorPage() {
         </div>
       </div>
 
-      {/* Card 1: Team leaderboard */}
+      {/* Card 1: Team leaderboard + Special Challenges Leaderboard */}
       {tab === 'teamLeaderboard' && (
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-base font-semibold mb-3">Team Leaderboard</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-600">
-              <tr>
-                <th className="py-2 pr-2 w-12">Rank</th>
-                <th className="py-2 pr-2">Team Name</th>
-                <th className="py-2 pr-2 text-right w-20">Points</th>
-                <th className="py-2 pr-2 text-right w-24">Avg RR</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamLeaderboard
-                .slice()
-                .sort((a,b)=> (Number(b.points)-Number(a.points)) || (Number(b.avg_rr||0)-Number(a.avg_rr||0)))
-                .map((t, idx) => (
-                  <tr key={t.team_id} className="border-t hover:bg-gray-50">
-                    <td className="py-2 pr-2 [font-variant-numeric:tabular-nums] font-bold text-rfl-navy">{idx+1}</td>
-                    <td className="py-2 pr-2 font-medium text-rfl-navy">{t.team_name}</td>
-                    <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-bold text-rfl-coral">{Math.round(t.points)}</td>
-                    <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold text-rfl-navy">{typeof t.avg_rr === 'number' ? t.avg_rr.toFixed(2) : '0.00'}</td>
-                  </tr>
-                ))}
-              {!teamLeaderboard.length && (
-                <tr><td colSpan={4} className="py-8 text-center text-gray-500">No data yet.</td></tr>
-              )}
-            </tbody>
-          </table>
+      <>
+        <div className="bg-white rounded-lg shadow p-4">
+          <h2 className="text-base font-semibold mb-3">Team Leaderboard</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-gray-600">
+                <tr>
+                  <th className="py-2 pr-2 w-12">Rank</th>
+                  <th className="py-2 pr-2">Team Name</th>
+                  <th className="py-2 pr-2 text-right w-20">Points</th>
+                  <th className="py-2 pr-2 text-right w-24">Avg RR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamLeaderboard
+                  .slice()
+                  .sort((a,b)=> (Number(b.points)-Number(a.points)) || (Number(b.avg_rr||0)-Number(a.avg_rr||0)))
+                  .map((t, idx) => (
+                    <tr key={t.team_id} className="border-t hover:bg-gray-50">
+                      <td className="py-2 pr-2 [font-variant-numeric:tabular-nums] font-bold text-rfl-navy">{idx+1}</td>
+                      <td className="py-2 pr-2 font-medium text-rfl-navy">{t.team_name}</td>
+                      <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-bold text-rfl-coral">{Math.round(t.points)}</td>
+                      <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold text-rfl-navy">{typeof t.avg_rr === 'number' ? t.avg_rr.toFixed(2) : '0.00'}</td>
+                    </tr>
+                  ))}
+                {!teamLeaderboard.length && (
+                  <tr><td colSpan={4} className="py-8 text-center text-gray-500">No data yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+
+        {/* Special Challenges Leaderboard */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold">Special Challenges Leaderboard</h2>
+            <button
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white hover:opacity-90"
+              onClick={openCreate}
+            >
+              <Plus className="w-4 h-4" /> Add Challenge
+            </button>
+          </div>
+
+          {createOpen && (
+            <div className="mb-3 border rounded p-3 bg-gray-50">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <input className="border rounded px-2 py-1 text-sm" placeholder="Challenge name"
+                  value={draft.name} onChange={(e)=>setDraft(v=>({...v, name: e.target.value}))} />
+                <input className="border rounded px-2 py-1 text-sm" placeholder="Start date (YYYY-MM-DD)"
+                  value={draft.start_date} onChange={(e)=>setDraft(v=>({...v, start_date: e.target.value}))} />
+                <input className="border rounded px-2 py-1 text-sm" placeholder="End date (YYYY-MM-DD)"
+                  value={draft.end_date} onChange={(e)=>setDraft(v=>({...v, end_date: e.target.value}))} />
+                <div className="flex items-center gap-2">
+                  <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white"
+                    onClick={addChallenge}><Save className="w-4 h-4" /> Save</button>
+                  <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm border"
+                    onClick={()=>setCreateOpen(false)}><X className="w-4 h-4" /> Cancel</button>
+                </div>
+              </div>
+              <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2} placeholder="Description"
+                value={draft.description} onChange={(e)=>setDraft(v=>({...v, description: e.target.value}))} />
+            </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[720px]">
+              <thead className="text-left text-gray-600">
+                <tr>
+                  <th className="py-2 pr-2 w-64">Challenge</th>
+                  <th className="py-2 pr-2 w-40">Date Range</th>
+                  {teams.map(t => (
+                    <th key={String(t.id)} className="py-2 px-2 text-right whitespace-nowrap">{t.name}</th>
+                  ))}
+                  <th className="py-2 px-2 text-right w-28">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {challenges.map(ch => {
+                  const editing = editingId === ch.id;
+                  return (
+                    <tr key={ch.id} className="border-t align-top">
+                      <td className="py-2 pr-2">
+                        {!editing ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-rfl-navy">{ch.name}</span>
+                            <button className="p-1 rounded hover:bg-gray-100" onClick={()=> setDescOpenId(v => v === ch.id ? null : ch.id)} title="Show description">
+                              <Info className="w-4 h-4 text-gray-600" />
+                            </button>
+                          </div>
+                        ) : (
+                          <input className="border rounded px-2 py-1 text-sm w-full" value={ch.name}
+                            onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, name: e.target.value }) : c))} />
+                        )}
+                        {descOpenId === ch.id && !editing && ch.description && (
+                          <div className="mt-2 text-xs text-gray-600 whitespace-pre-wrap">{ch.description}</div>
+                        )}
+                        {editing && (
+                          <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2}
+                            value={ch.description}
+                            onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, description: e.target.value }) : c))} />
+                        )}
+                      </td>
+                      <td className="py-2 pr-2 whitespace-nowrap">
+                        {!editing ? (
+                          <span className="text-gray-700">{(ch.start_date || '—')} → {(ch.end_date || '—')}</span>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-1">
+                            <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.start_date}
+                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, start_date: e.target.value }) : c))} />
+                            <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.end_date}
+                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, end_date: e.target.value }) : c))} />
+                          </div>
+                        )}
+                      </td>
+                      {teams.map(t => (
+                        <td key={`${ch.id}-${String(t.id)}`} className="py-2 px-2 text-right">
+                          {!editing ? (
+                            <span className="[font-variant-numeric:tabular-nums]">{ch.scores[String(t.id)] ?? ''}</span>
+                          ) : (
+                            <input
+                              className="w-20 border rounded px-2 py-1 text-sm text-right"
+                              value={ch.scores[String(t.id)] ?? ''}
+                              onChange={(e)=> setScore(ch.id, String(t.id), e.target.value)}
+                              inputMode="numeric"
+                            />
+                          )}
+                        </td>
+                      ))}
+                      <td className="py-2 px-2 text-right whitespace-nowrap">
+                        {!editing ? (
+                          <div className="inline-flex items-center gap-2">
+                            <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> startEdit(ch.id)} title="Edit"><Pencil className="w-4 h-4" /></button>
+                            <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> deleteChallenge(ch.id)} title="Delete"><Trash2 className="w-4 h-4 text-red-600" /></button>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-2">
+                            <button className="p-1 rounded border bg-rfl-navy text-white hover:opacity-90" onClick={()=> saveEdit(ch.id, {})} title="Save"><Save className="w-4 h-4" /></button>
+                            <button className="p-1 rounded border hover:bg-gray-50" onClick={cancelEdit} title="Cancel"><X className="w-4 h-4" /></button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!challenges.length && (
+                  <tr><td colSpan={2 + teams.length + 1} className="py-8 text-center text-gray-500">No challenges yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
       )}
 
       {/* Card 2: Aggregate activity snapshot (moved up under leaderboard) */}
@@ -763,5 +1064,4 @@ export default function GovernorPage() {
     </div>
   )
 }
-
 
