@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Info } from 'lucide-react'
 import { getSupabase } from '@/lib/supabase'
 
 type Team = { id: string; name: string }
@@ -18,7 +17,7 @@ export default function MyChallengesPage() {
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
   const [challenges, setChallenges] = useState<Challenge[]>([])
-  const [descOpenId, setDescOpenId] = useState<string | null>(null)
+  const [challengeHasScore, setChallengeHasScore] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -61,12 +60,44 @@ export default function MyChallengesPage() {
           ch.scores[tid] = r.score === null || r.score === undefined ? null : Number(r.score)
         })
         setChallenges(Array.from(byId.values()))
+        // Map of which challenges have at least one non-null score
+        const hasScoreMap: Record<string, boolean> = {}
+        ;(scRows || []).forEach((r: any) => {
+          const cid = String(r.challenge_id)
+          const val = r.score === null || r.score === undefined ? null : Number(r.score)
+          if (val !== null && Number.isFinite(val)) hasScoreMap[cid] = true
+        })
+        setChallengeHasScore(hasScoreMap)
       } finally {
         setLoading(false)
       }
     }
     load()
   }, [])
+
+  // Format 'YYYY-MM-DD' → 'DD/MM/YYYY'
+  function formatDMY(s: string | null | undefined): string {
+    if (!s) return '—'
+    const parts = String(s).split('-')
+    if (parts.length !== 3) return String(s)
+    const [y, m, d] = parts
+    if (!y || !m || !d) return String(s)
+    return `${d}/${m}/${y}`
+  }
+  // Today as local YMD
+  function todayLocalYMD(): string {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  // Active if today within [start, end]
+  function isChallengeActive(start?: string | null, end?: string | null): boolean {
+    if (!start || !end) return false
+    const t = todayLocalYMD()
+    return t >= String(start) && t <= String(end)
+  }
 
   if (loading) {
     return (
@@ -84,52 +115,45 @@ export default function MyChallengesPage() {
           <table className="w-full text-sm min-w-[720px]">
             <thead className="text-left text-gray-600">
               <tr>
-                <th className="py-2 pr-2 w-64">Challenge</th>
-                <th className="py-2 pr-2 w-40">Date Range</th>
-                {teams.map((t) => (
-                  <th key={String(t.id)} className="py-2 px-2 text-right whitespace-nowrap">
-                    {t.name}
-                  </th>
-                ))}
+                <th className="py-2 pr-1 w-64">Challenge</th>
+                <th className="py-2 pr-3 w-40">Date Range</th>
+                <th className="py-2 pr-2 w-80">Description</th>
               </tr>
             </thead>
             <tbody>
-              {challenges.map((ch) => (
-                <tr key={ch.id} className="border-t align-top">
-                  <td className="py-2 pr-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-rfl-navy">{ch.name}</span>
-                      {ch.description ? (
-                        <button
-                          className="p-1 rounded hover:bg-gray-100"
-                          title="Show description"
-                          onClick={()=> setDescOpenId(v => v === ch.id ? null : ch.id)}
-                        >
-                          <Info className="w-4 h-4 text-gray-600" />
-                        </button>
-                      ) : null}
-                    </div>
-                    {descOpenId === ch.id && ch.description ? (
-                      <div className="mt-2 text-xs text-gray-600 whitespace-pre-wrap">{ch.description}</div>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-2 whitespace-nowrap">
-                    <span className="text-gray-700">
-                      {(ch.start_date || '—')} → {(ch.end_date || '—')}
-                    </span>
-                  </td>
-                  {teams.map((t) => (
-                    <td key={`${ch.id}-${String(t.id)}`} className="py-2 px-2 text-right">
-                      <span className="[font-variant-numeric:tabular-nums]">
-                        {ch.scores[String(t.id)] ?? ''}
+              {challenges.map((ch) => {
+                const active = isChallengeActive(ch.start_date, ch.end_date)
+                return (
+                  <tr
+                    key={ch.id}
+                    className={`border-t align-top ${active ? 'bg-yellow-50 ring-1 ring-rfl-coral/40' : ''}`}
+                  >
+                    <td className="py-2 pr-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-rfl-navy">{ch.name}</span>
+                        {active && (
+                          <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2 pr-3 whitespace-nowrap">
+                      <span className="text-gray-700">
+                        {formatDMY(ch.start_date)} → {formatDMY(ch.end_date)}
                       </span>
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    <td className="py-2 pr-2">
+                      <div className="text-md text-gray-800 whitespace-pre-wrap">
+                        {ch.description || '—'}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {!challenges.length && (
                 <tr>
-                  <td colSpan={2 + teams.length} className="py-8 text-center text-gray-500">
+                  <td colSpan={3} className="py-8 text-center text-gray-500">
                     No challenges yet.
                   </td>
                 </tr>
