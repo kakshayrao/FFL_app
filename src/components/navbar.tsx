@@ -274,7 +274,7 @@ export function Navbar() {
   // Minimal header for governors only
   if (role === 'governor') {
     return (
-      <nav className="bg-rfl-navy text-white shadow-lg">
+      <nav className="sticky top-0 z-50 w-full bg-rfl-navy/95 text-white shadow-md backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -355,7 +355,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-rfl-navy text-white shadow-lg">
+    <nav className="sticky top-0 z-50 w-full bg-rfl-navy/95 text-white shadow-md backdrop-blur">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* RFL Logo/Brand */}
