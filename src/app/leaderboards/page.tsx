@@ -150,6 +150,12 @@ export default function LeaderboardsPage() {
     const t = todayYmdLocal();
     return t >= String(c.start_date || '') && t <= String(c.end_date || '');
   };
+  const formatChallengeDate = (value?: string | null) => {
+    if (!value) return '—';
+    const [y, m, d] = value.split('-');
+    if (!y || !m || !d) return value;
+    return `${d}-${m}-${y}`;
+  };
 
   // Period dropdown options (Overall + completed/in-progress weeks)
   const periodOptions = useMemo(() => {
@@ -459,12 +465,19 @@ export default function LeaderboardsPage() {
                       : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent'
                   }`}
                 >
-                  <span className="font-medium text-rfl-navy">
-                    {selectedChallenge
-                      ? `${selectedChallenge.name}${isActiveChallenge(selectedChallenge) ? ' (Active)' : ''}`
-                      : isLoadingChallenges
-                        ? 'Loading...'
-                        : 'Select challenge'}
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium text-rfl-navy">
+                      {selectedChallenge
+                        ? selectedChallenge.name
+                        : isLoadingChallenges
+                          ? 'Loading...'
+                          : 'Select challenge'}
+                    </span>
+                    {selectedChallenge && isActiveChallenge(selectedChallenge) && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+                        Active
+                      </span>
+                    )}
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${challengeDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -486,15 +499,17 @@ export default function LeaderboardsPage() {
                             }}
                           >
                             <span className="flex items-center justify-between">
-                              <span className="font-medium">{c.name}</span>
+                          <span className="px-3 py-1 rounded-md bg-gray-100 text-sm font-medium text-rfl-navy border border-gray-200">
+                            {c.name}
+                          </span>
                               {active && (
-                                <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-rfl-coral text-white">
+                            <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
                                   Active
                                 </span>
                               )}
                             </span>
                             <span className="text-xs text-gray-500">
-                              {c.start_date} → {c.end_date}
+                          {formatChallengeDate(c.start_date)} to {formatChallengeDate(c.end_date)}
                             </span>
                           </button>
                         );
@@ -514,13 +529,15 @@ export default function LeaderboardsPage() {
             ) : (
               <div className="overflow-hidden">
                 {selectedChallenge && (
-                  <div className="mb-3 text-sm">
-                    <span className="font-medium text-rfl-navy">{selectedChallenge.name}</span>
-                    <span className="ml-2 text-gray-600">
-                      {selectedChallenge.start_date} → {selectedChallenge.end_date}
+                  <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 text-rfl-navy font-semibold border border-gray-200">
+                      {selectedChallenge.name}
+                    </span>
+                    <span className="text-gray-600">
+                      {formatChallengeDate(selectedChallenge.start_date)} to {formatChallengeDate(selectedChallenge.end_date)}
                     </span>
                     {isActiveChallenge(selectedChallenge) && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white align-middle">
+                      <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
                         Active
                       </span>
                     )}

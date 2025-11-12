@@ -75,14 +75,14 @@ export default function MyChallengesPage() {
     load()
   }, [])
 
-  // Format 'YYYY-MM-DD' → 'DD/MM/YYYY'
+  // Format 'YYYY-MM-DD' → 'DD-MM-YYYY'
   function formatDMY(s: string | null | undefined): string {
     if (!s) return '—'
     const parts = String(s).split('-')
     if (parts.length !== 3) return String(s)
     const [y, m, d] = parts
     if (!y || !m || !d) return String(s)
-    return `${d}/${m}/${y}`
+    return `${d}-${m}-${y}`
   }
   // Today as local YMD
   function todayLocalYMD(): string {
@@ -115,33 +115,43 @@ export default function MyChallengesPage() {
           <table className="w-full text-sm min-w-[720px]">
             <thead className="text-left text-gray-600">
               <tr>
-                <th className="py-2 pr-1 w-64">Challenge</th>
-                <th className="py-2 pr-3 w-40">Date Range</th>
-                <th className="py-2 pr-2 w-80">Description</th>
+                <th className="py-2 pr-3 w-10 ">No.</th>
+                <th className="py-2 pr-1 w-64 ">Challenge</th>
+                <th className="py-2 pr-3 w-40 ">Duration</th>
+                <th className="py-2 pr-2 w-80">Description/Rules</th>
               </tr>
             </thead>
             <tbody>
-              {challenges.map((ch) => {
+              {challenges.map((ch, idx) => {
                 const active = isChallengeActive(ch.start_date, ch.end_date)
                 return (
                   <tr
                     key={ch.id}
-                    className={`border-t align-top ${active ? 'bg-yellow-50 ring-1 ring-rfl-coral/40' : ''}`}
+                    className={`border-t align-top transition ${
+                      active ? 'bg-green-50/80 ring-1 ring-green-200' : ''
+                    }`}
                   >
-                    <td className="py-2 pr-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-rfl-navy">{ch.name}</span>
+                    <td className="py-2 pr-3 align-top text-sm text-gray-600 [font-variant-numeric:tabular-nums]">
+                      {idx + 1}
+                    </td>
+                    <td className="py-2 pr-0 align-top">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center px-3 py-1 rounded-md bg-gray-100 text-sm font-semibold text-rfl-navy border border-gray-200">
+                          {ch.name}
+                        </span>
                         {active && (
-                          <span className="ml-1 text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white">
+                          <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
                             Active
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-2 pr-3 whitespace-nowrap">
-                      <span className="text-gray-700">
-                        {formatDMY(ch.start_date)} → {formatDMY(ch.end_date)}
-                      </span>
+                    <td className="py-2 pr-3 whitespace-nowrap align-top">
+                      <div className="flex items-center gap-2 text-gray-700 text-sm">
+                        <span>{formatDMY(ch.start_date)}</span>
+                        <span className="text-gray-400">to</span>
+                        <span>{formatDMY(ch.end_date)}</span>
+                      </div>
                     </td>
                     <td className="py-2 pr-2">
                       <div className="text-md text-gray-800 whitespace-pre-wrap">
