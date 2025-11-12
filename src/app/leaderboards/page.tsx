@@ -4,11 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, ChevronDown } from 'lucide-react';
 import { getSupabase } from "@/lib/supabase";
 
 type TeamRow = { team_id: string; team_name: string; points: number; avg_rr: number | null };
 type PlayerRow = { user_id: string; name: string; team: string | null; points: number; avg_rr: number | null };
+
+type Challenge = { id: string; name: string; start_date: string; end_date: string };
+type ChallengeScore = { challenge_id: string; team_id: string; score: number | null };
 
 type TeamStanding = {
   teamId: string;
@@ -137,6 +140,22 @@ export default function LeaderboardsPage() {
     return `${y}-${m}-${day}`;
   };
   const addDaysLocal = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const todayYmdLocal = () => {
+    const t = todayLocal();
+    const y = t.getFullYear(); const m = String(t.getMonth() + 1).padStart(2, '0'); const d = String(t.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  const isActiveChallenge = (c?: Challenge | null) => {
+    if (!c) return false;
+    const t = todayYmdLocal();
+    return t >= String(c.start_date || '') && t <= String(c.end_date || '');
+  };
+  const formatChallengeDate = (value?: string | null) => {
+    if (!value) return '—';
+    const [y, m, d] = value.split('-');
+    if (!y || !m || !d) return value;
+    return `${d}-${m}-${y}`;
+  };
 
   // Period dropdown options (Overall + completed/in-progress weeks)
   const periodOptions = useMemo(() => {
@@ -175,6 +194,17 @@ export default function LeaderboardsPage() {
       const { data: allTeams } = await getSupabase().from('teams').select('id, name');
       const teams = (allTeams || []) as Array<{ id: string; name: string }>;
 
+      // Fetch total Special Challenge bonus points per team (sum of scores)
+      const { data: chScores } = await getSupabase()
+        .from('special_challenge_team_scores')
+        .select('team_id, score');
+      const challengeBonusByTeam = new Map<string, number>();
+      (chScores || []).forEach((r: any) => {
+        const tid = String(r.team_id);
+        const s = r.score == null ? 0 : Number(r.score);
+        challengeBonusByTeam.set(tid, (challengeBonusByTeam.get(tid) || 0) + (Number.isFinite(s) ? s : 0));
+      });
+
       // Helper to compute standings within [s, e]
       const compute = async (s: Date, e: Date): Promise<Array<Omit<TeamStanding, 'position' | 'delta'>>> => {
         const res: Array<Omit<TeamStanding, 'position' | 'delta'>> = [];
@@ -195,15 +225,19 @@ export default function LeaderboardsPage() {
             if (isRest && rr > 0) pts += 1; else if (!isRest) pts += 1;
             if (rr > 0) { rrSum += rr; rrCnt += 1; }
           });
-          // Apply proportional factor for 13-player teams (display only)
-          let displayPts = pts;
+          // Apply proportional factor for 13-player teams, then ROUND to nearest integer
+          let adjusted = pts;
           if (THIRTEEN_PLAYER_TEAMS.has(tid)) {
-            displayPts = Math.round(pts * THIRTEEN_TEAM_FACTOR * 100) / 100;
+            adjusted = pts * THIRTEEN_TEAM_FACTOR;
           }
+          const pointsRounded = Math.round(adjusted);
+          // Add Special Challenge bonus AFTER proportional rounding (display-only rule)
+          const bonus = Number(challengeBonusByTeam.get(tid) || 0);
+          const finalPoints = pointsRounded + (Number.isFinite(bonus) ? bonus : 0);
           const avgRR = rrCnt > 0 ? Math.round((rrSum / rrCnt) * 100) / 100 : 0;
-          res.push({ teamId: tid, teamName: String(team.name), points: displayPts, avgRR });
+          res.push({ teamId: tid, teamName: String(team.name), points: finalPoints, avgRR });
         }
-        // sort by adjusted points
+        // sort by rounded (displayed) points, then RR
         res.sort((a,b)=> (b.points - a.points) || (b.avgRR - a.avgRR));
         return res;
       };
@@ -225,6 +259,75 @@ export default function LeaderboardsPage() {
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod]);
+
+  // ----- Challenges dropdown and team-wise scores -----
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [challengeScores, setChallengeScores] = useState<ChallengeScore[]>([]);
+  const [teamsMeta, setTeamsMeta] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
+  const [isLoadingChallenges, setIsLoadingChallenges] = useState<boolean>(true);
+  const [challengeDropdownOpen, setChallengeDropdownOpen] = useState<boolean>(false);
+  const challengeDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setIsLoadingChallenges(true);
+      try {
+        const [{ data: chRows }, { data: scRows }, { data: tms }] = await Promise.all([
+          getSupabase().from('special_challenges').select('id,name,start_date,end_date').order('created_at', { ascending: false }),
+          getSupabase().from('special_challenge_team_scores').select('challenge_id,team_id,score'),
+          getSupabase().from('teams').select('id,name'),
+        ]);
+        const chs = ((chRows || []) as any[]).map(r => ({
+          id: String(r.id), name: String(r.name), start_date: String(r.start_date || ''), end_date: String(r.end_date || ''),
+        })) as Challenge[];
+        setChallenges(chs);
+        setChallengeScores(((scRows || []) as any[]).map(r => ({
+          challenge_id: String(r.challenge_id), team_id: String(r.team_id), score: r.score == null ? null : Number(r.score),
+        })));
+        setTeamsMeta(((tms || []) as any[]).map(r => ({ id: String(r.id), name: String(r.name) })));
+        const active = chs.find(c => isActiveChallenge(c));
+        setSelectedChallengeId(active ? active.id : (chs[0]?.id ?? null));
+      } finally {
+        setIsLoadingChallenges(false);
+      }
+    })();
+  }, []);
+
+  const selectedChallenge = useMemo(
+    () => challenges.find(c => c.id === selectedChallengeId) || null,
+    [challenges, selectedChallengeId]
+  );
+  const teamNameById = useMemo(() => {
+    const m = new Map<string,string>();
+    (teamsMeta || []).forEach(t => m.set(String(t.id), String(t.name)));
+    return m;
+  }, [teamsMeta]);
+  const scoresForSelected = useMemo(() => {
+    if (!selectedChallenge) return [] as Array<{ team_id: string; team_name: string; score: number | null }>;
+    const list = challengeScores
+      .filter(s => s.challenge_id === selectedChallenge.id)
+      .map(s => ({ team_id: s.team_id, team_name: teamNameById.get(s.team_id) || s.team_id, score: s.score }));
+    teamsMeta.forEach(t => {
+      if (!list.find(r => r.team_id === t.id)) list.push({ team_id: t.id, team_name: t.name, score: null });
+    });
+    return list.sort((a,b) => {
+      const as = a.score == null ? -Infinity : Number(a.score);
+      const bs = b.score == null ? -Infinity : Number(b.score);
+      return bs - as || a.team_name.localeCompare(b.team_name);
+    });
+  }, [selectedChallenge, challengeScores, teamsMeta, teamNameById]);
+
+  useEffect(() => {
+    if (!challengeDropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (challengeDropdownRef.current && !challengeDropdownRef.current.contains(event.target as Node)) {
+        setChallengeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [challengeDropdownOpen]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -319,7 +422,7 @@ export default function LeaderboardsPage() {
                             <span className="font-medium text-rfl-navy text-sm whitespace-nowrap min-w-max">{t.teamName}</span>
                           </div>
                         </td>
-                        <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-bold text-rfl-coral text-sm w-16">{Math.round(t.points)}</td>
+                        <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-bold text-rfl-coral text-sm w-16">{t.points}</td>
                         <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold text-rfl-navy text-sm w-16">{t.avgRR.toFixed(2)}</td>
                       </tr>
                     );
@@ -337,6 +440,146 @@ export default function LeaderboardsPage() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Challenges dropdown + team-wise scores */}
+        <Card className="bg-white shadow-md">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-xl text-rfl-navy">Challenges</CardTitle>
+                <CardDescription>Team-wise scores per challenge</CardDescription>
+              </div>
+              <div className="relative" ref={challengeDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isLoadingChallenges || !challenges.length) return;
+                    setChallengeDropdownOpen((prev) => !prev);
+                  }}
+                  disabled={isLoadingChallenges || !challenges.length}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition ${
+                    isLoadingChallenges || !challenges.length
+                      ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
+                      : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium text-rfl-navy">
+                      {selectedChallenge
+                        ? selectedChallenge.name
+                        : isLoadingChallenges
+                          ? 'Loading...'
+                          : 'Select challenge'}
+                    </span>
+                    {selectedChallenge && isActiveChallenge(selectedChallenge) && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+                        Active
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${challengeDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {challengeDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                    <div className="py-1 max-h-72 overflow-auto">
+                      {challenges.map((c) => {
+                        const active = isActiveChallenge(c);
+                        const isSelected = selectedChallengeId === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            className={`w-full text-left px-4 py-2 text-sm flex flex-col gap-1 hover:bg-gray-100 ${
+                              isSelected ? 'bg-rfl-coral/10 text-rfl-coral' : 'text-gray-700'
+                            }`}
+                            onClick={() => {
+                              setSelectedChallengeId(c.id);
+                              setChallengeDropdownOpen(false);
+                            }}
+                          >
+                            <span className="flex items-center justify-between">
+                          <span className="px-3 py-1 rounded-md bg-gray-100 text-sm font-medium text-rfl-navy border border-gray-200">
+                            {c.name}
+                          </span>
+                              {active && (
+                            <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+                                  Active
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                          {formatChallengeDate(c.start_date)} to {formatChallengeDate(c.end_date)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {!challenges.length && (
+                        <div className="px-4 py-3 text-sm text-gray-500">No challenges yet.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!challenges.length && !isLoadingChallenges ? (
+              <div className="py-8 text-gray-600 text-center text-sm">No challenges yet.</div>
+            ) : (
+              <div className="overflow-hidden">
+                {selectedChallenge && (
+                  <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 text-rfl-navy font-semibold border border-gray-200">
+                      {selectedChallenge.name}
+                    </span>
+                    <span className="text-gray-600">
+                      {formatChallengeDate(selectedChallenge.start_date)} to {formatChallengeDate(selectedChallenge.end_date)}
+                    </span>
+                    {isActiveChallenge(selectedChallenge) && (
+                      <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                )}
+                <table className="w-full text-sm">
+                  <thead className="text-left text-gray-600">
+                    <tr>
+                      <th className="py-2 pr-2 text-xs font-semibold w-12">Rank</th>
+                      <th className="py-2 pr-2 text-xs font-semibold">Team</th>
+                      <th className="py-2 pr-2 text-xs font-semibold text-right w-24">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(isLoadingChallenges || !selectedChallenge) ? (
+                      <tr><td colSpan={3} className="py-8 text-gray-600 text-center text-sm">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-rfl-coral"></div>
+                          <span>Loading...</span>
+                        </div>
+                      </td></tr>
+                    ) : (
+                      scoresForSelected.map((r, idx) => {
+                        const active = isActiveChallenge(selectedChallenge);
+                        const showNotUpdated = active && (r.score == null);
+                        return (
+                          <tr key={r.team_id} className={`border-t ${active ? 'hover:bg-gray-50' : ''}`}>
+                            <td className="py-2 pr-2 [font-variant-numeric:tabular-nums] text-sm w-12">{idx + 1}</td>
+                            <td className="py-2 pr-2">
+                              <span className="text-sm text-rfl-navy font-medium">{r.team_name}</span>
+                            </td>
+                            <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold">
+                              {showNotUpdated ? 'Not updated' : (r.score == null ? '' : r.score)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 

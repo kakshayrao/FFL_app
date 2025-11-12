@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PFL Dashboard - Pristine Fitness League",
-  description: "Dashboard for Pristine Fitness League team management and workout tracking",
+  title: "FFL Dashboard - Family Fitness League",
+  description: "Dashboard for Family Fitness League team management and workout tracking",
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <AppProviders>
           <Navbar />
-          <main className="min-h-screen bg-rfl-peach">
+          <main className="min-h-screen bg-rfl-black">
             {children}
           </main>
           <Analytics />

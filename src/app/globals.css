@@ -53,8 +53,8 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #F7E2D5; /* RFL Peach background */
-  --foreground: #0F1E46; /* RFL Navy text */
+  --background: #faf9f8; /* RFL Peach background */
+  /* --foreground: #070607; RFL Navy text */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -120,6 +120,14 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+} */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -127,8 +135,19 @@
   body {
     @apply bg-background text-foreground;
   }
+  body {
+    /* fallback for old browsers */
+    background: #abbaab;
+    /* Chrome 10-25, Safari 5.1-6 */
+    background: -webkit-linear-gradient(to right, #ffffff, #abbaab);
+    /* Modern browsers */
+    background: linear-gradient(to right, #ffffff, #abbaab);
+    @apply text-foreground;
+  }
+  .navbar-gradient {
+    
+  }
 }
-
 /* Hide scrollbar for team column horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */

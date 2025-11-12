@@ -7,7 +7,7 @@ export async function middleware(req: NextRequest) {
   const hasSession = req.cookies.has('next-auth.session-token') || req.cookies.has('__Secure-next-auth.session-token')
 
   const isAuthRoute = req.nextUrl.pathname.startsWith('/signin') || req.nextUrl.pathname.startsWith('/signup')
-  const isProtected = ['/dashboard', '/team', '/leaderboards', '/rules'].some((p) => req.nextUrl.pathname.startsWith(p))
+  const isProtected = ['/dashboard', '/team', '/leaderboards', '/rules', '/my-challenges'].some((p) => req.nextUrl.pathname.startsWith(p))
 
   if (!hasSession && isProtected) {
     const url = new URL('/', req.url)

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Dumbbell, Trophy, Users, BookOpen, User, Menu, X, Key, Eye, EyeOff, LogOut } from 'lucide-react'
+import { Dumbbell, Trophy, Users, BookOpen, User, Menu, X, Key, Eye, EyeOff, LogOut, Flag } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/supabase'
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/dashboard', label: 'My Progress', icon: Dumbbell },
   { href: '/team', label: 'My Team', icon: Users },
   { href: '/leaderboards', label: 'Leaderboard', icon: Trophy },
+  { href: '/my-challenges', label: 'My Challenges', icon: Flag },
   { href: '/rules', label: 'Rules', icon: BookOpen },
 ]
 
@@ -283,7 +284,7 @@ export function Navbar() {
               <div className="text-sm sm:text-base">Welcome, {name ?? 'Governor'}</div>
             </div>
             {/* Desktop actions */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-3">
               {name ? (
                 <>
                   <Button onClick={() => setShowPasswordModal(true)} variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">
@@ -295,11 +296,7 @@ export function Navbar() {
                     Sign Out
                   </Button>
                 </>
-              ) : (
-                <Link href="/signin">
-                  <Button variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">Sign In</Button>
-                </Link>
-              )}
+              ) : null}
             </div>
             {/* Mobile hamburger */}
             <button
@@ -345,11 +342,7 @@ export function Navbar() {
                       Sign Out
                     </button>
                   </>
-                ) : (
-                  <Link href="/signin" className="block px-3 py-2 rounded-md bg-white text-rfl-navy font-medium" onClick={() => setMobileOpen(false)}>
-                    Sign In
-                  </Link>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -366,20 +359,20 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* RFL Logo/Brand */}
-          <div className="flex items-center space-x-4">
-            <Link href="/dashboard" className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4 shrink-0">
+            <Link href="/dashboard" className="flex items-center space-x-2 shrink-0">
               <div className="w-10 h-10 rounded-lg overflow-hidden bg-white">
                 <img src="/img/PFL_Logo.jpeg" alt="PFL Logo" className="w-full h-full object-cover" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold">PFL</h1>
-                <p className="text-xs text-gray-300">Pristine Fitness League</p>
+              <div className="whitespace-nowrap leading-tight">
+                <h1 className="text-lg font-bold whitespace-nowrap">FFL</h1>
+                <p className="text-xs text-gray-300 whitespace-nowrap">Family Fitness League</p>
               </div>
             </Link>
           </div>
 
           {/* Navigation Links (desktop) */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center justify-center flex-1 space-x-6 ml-6 mr-6">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = item.href === '/dashboard'
@@ -389,7 +382,7 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
                       ? 'bg-rfl-coral text-white'
                       : 'text-gray-300 hover:text-white hover:bg-rfl-light-blue'
@@ -404,8 +397,8 @@ export function Navbar() {
 
           {/* User Menu + Mobile toggle */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              {name ? (
+            {name && (
+              <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded border border-white/20 overflow-hidden bg-white">
                   <img 
                     src={getTeamLogoPath(teamName)} 
@@ -416,13 +409,11 @@ export function Navbar() {
                     }}
                   />
                 </div>
-              ) : (
-                <User className="w-5 h-5" />
-              )}
-              <span className="text-sm">{name ?? 'Guest'}</span>
-            </div>
+                <span className="text-sm">{name}</span>
+              </div>
+            )}
             {/* Desktop-only auth actions */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-3">
               {name ? (
                 <>
                   <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy flex items-center">
@@ -434,13 +425,7 @@ export function Navbar() {
                     Update Password
                   </Button>
                 </>
-              ) : (
-                <Link href="/signin">
-                  <Button variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">
-                    Sign In
-                  </Button>
-                </Link>
-              )}
+              ) : null}
             </div>
             {/* Hamburger toggle (mobile only) */}
             <button
@@ -460,8 +445,8 @@ export function Navbar() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-64 bg-rfl-navy text-white shadow-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                {name ? (
+              {name && (
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded border border-white/20 overflow-hidden bg-white">
                     <img 
                       src={getTeamLogoPath(teamName)} 
@@ -472,11 +457,9 @@ export function Navbar() {
                       }}
                     />
                   </div>
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-                <span className="text-sm">{name ?? 'Guest'}</span>
-              </div>
+                  <span className="text-sm">{name}</span>
+                </div>
+              )}
               <button className="p-2 rounded hover:bg-rfl-light-blue/30" aria-label="Close menu" onClick={() => setMobileOpen(false)}>
                 <X className="w-5 h-5" />
               </button>
@@ -522,11 +505,7 @@ export function Navbar() {
                     Update Password
                   </button>
                 </>
-              ) : (
-                <Link href="/signin" className="block px-3 py-2 rounded-md bg-white text-rfl-navy font-medium" onClick={() => setMobileOpen(false)}>
-                  Sign In
-                </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
