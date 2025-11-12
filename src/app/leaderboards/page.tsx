@@ -562,7 +562,7 @@ export default function LeaderboardsPage() {
                     ) : (
                       scoresForSelected.map((r, idx) => {
                         const active = isActiveChallenge(selectedChallenge);
-                        const showNotUpdated = active && (r.score == null);
+                        const showNotUpdated = (r.score == null);
                         return (
                           <tr key={r.team_id} className={`border-t ${active ? 'hover:bg-gray-50' : ''}`}>
                             <td className="py-2 pr-2 [font-variant-numeric:tabular-nums] text-sm w-12">{idx + 1}</td>

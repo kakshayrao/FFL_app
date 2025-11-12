@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '@/lib/supabase'
 
 type Team = { id: string; name: string }
@@ -59,7 +60,8 @@ export default function MyChallengesPage() {
           const ch = byId.get(id)!
           ch.scores[tid] = r.score === null || r.score === undefined ? null : Number(r.score)
         })
-        setChallenges(Array.from(byId.values()))
+        const challengeList = Array.from(byId.values())
+        setChallenges(challengeList)
         // Map of which challenges have at least one non-null score
         const hasScoreMap: Record<string, boolean> = {}
         ;(scRows || []).forEach((r: any) => {
@@ -84,6 +86,8 @@ export default function MyChallengesPage() {
     if (!y || !m || !d) return String(s)
     return `${d}-${m}-${y}`
   }
+
+  const sortedChallenges = useMemo(() => challenges, [challenges])
   // Today as local YMD
   function todayLocalYMD(): string {
     const now = new Date()
@@ -110,67 +114,49 @@ export default function MyChallengesPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-4">
       <h1 className="text-xl font-semibold text-rfl-navy">My Challenges</h1>
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[720px]">
-            <thead className="text-left text-gray-600">
-              <tr>
-                <th className="py-2 pr-3 w-10 ">No.</th>
-                <th className="py-2 pr-1 w-64 ">Challenge</th>
-                <th className="py-2 pr-3 w-40 ">Duration</th>
-                <th className="py-2 pr-2 w-80">Description/Rules</th>
-              </tr>
-            </thead>
-            <tbody>
-              {challenges.map((ch, idx) => {
-                const active = isChallengeActive(ch.start_date, ch.end_date)
-                return (
-                  <tr
-                    key={ch.id}
-                    className={`border-t align-top transition ${
-                      active ? 'bg-green-50/80 ring-1 ring-green-200' : ''
-                    }`}
-                  >
-                    <td className="py-2 pr-3 align-top text-sm text-gray-600 [font-variant-numeric:tabular-nums]">
-                      {idx + 1}
-                    </td>
-                    <td className="py-2 pr-0 align-top">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center px-3 py-1 rounded-md bg-gray-100 text-sm font-semibold text-rfl-navy border border-gray-200">
-                          {ch.name}
-                        </span>
-                        {active && (
-                          <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 pr-3 whitespace-nowrap align-top">
-                      <div className="flex items-center gap-2 text-gray-700 text-sm">
-                        <span>{formatDMY(ch.start_date)}</span>
-                        <span className="text-gray-400">to</span>
-                        <span>{formatDMY(ch.end_date)}</span>
-                      </div>
-                    </td>
-                    <td className="py-2 pr-2">
-                      <div className="text-md text-gray-800 whitespace-pre-wrap">
-                        {ch.description || '—'}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-              {!challenges.length && (
-                <tr>
-                  <td colSpan={3} className="py-8 text-center text-gray-500">
-                    No challenges yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-3">
+        {sortedChallenges.map((ch, idx) => {
+          const active = isChallengeActive(ch.start_date, ch.end_date)
+          return (
+            <Link
+              key={ch.id}
+              href={`/my-challenges/${ch.id}`}
+              className={`flex items-center gap-4 rounded-lg border bg-white px-5 py-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rfl-navy ${
+                active ? 'border-green-200 ring-offset-2' : ''
+              }`}
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rfl-navy text-sm font-semibold text-white">
+                {idx + 1}
+              </span>
+              <div className="flex flex-1 flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-base font-semibold text-rfl-navy">{ch.name}</p>
+                  {active && (
+                    <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-green-700">
+                      Active
+                    </span>
+                  )}
+                  {challengeHasScore[ch.id] && (
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                      Scores Posted
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {formatDMY(ch.start_date)} to {formatDMY(ch.end_date)}
+                </div>
+              </div>
+              <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M7 5l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          )
+        })}
+        {!sortedChallenges.length && (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-white px-5 py-10 text-center text-sm text-gray-500">
+            No challenges yet.
+          </div>
+        )}
       </div>
     </div>
   )
