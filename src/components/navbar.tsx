@@ -284,7 +284,7 @@ export function Navbar() {
               <div className="text-sm sm:text-base">Welcome, {name ?? 'Governor'}</div>
             </div>
             {/* Desktop actions */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-3">
               {name ? (
                 <>
                   <Button onClick={() => setShowPasswordModal(true)} variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">
@@ -296,11 +296,7 @@ export function Navbar() {
                     Sign Out
                   </Button>
                 </>
-              ) : (
-                <Link href="/signin">
-                  <Button variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">Sign In</Button>
-                </Link>
-              )}
+              ) : null}
             </div>
             {/* Mobile hamburger */}
             <button
@@ -346,11 +342,7 @@ export function Navbar() {
                       Sign Out
                     </button>
                   </>
-                ) : (
-                  <Link href="/signin" className="block px-3 py-2 rounded-md bg-white text-rfl-navy font-medium" onClick={() => setMobileOpen(false)}>
-                    Sign In
-                  </Link>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -380,7 +372,7 @@ export function Navbar() {
           </div>
 
           {/* Navigation Links (desktop) */}
-          <div className="hidden md:flex items-center justify-center flex-1 space-x-8">
+          <div className="hidden md:flex items-center justify-center flex-1 space-x-6 ml-6 mr-6">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = item.href === '/dashboard'
@@ -405,8 +397,8 @@ export function Navbar() {
 
           {/* User Menu + Mobile toggle */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              {name ? (
+            {name && (
+              <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 rounded border border-white/20 overflow-hidden bg-white">
                   <img 
                     src={getTeamLogoPath(teamName)} 
@@ -417,13 +409,11 @@ export function Navbar() {
                     }}
                   />
                 </div>
-              ) : (
-                <User className="w-5 h-5" />
-              )}
-              <span className="text-sm">{name ?? 'Guest'}</span>
-            </div>
+                <span className="text-sm">{name}</span>
+              </div>
+            )}
             {/* Desktop-only auth actions */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-3">
               {name ? (
                 <>
                   <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy flex items-center">
@@ -435,13 +425,7 @@ export function Navbar() {
                     Update Password
                   </Button>
                 </>
-              ) : (
-                <Link href="/signin">
-                  <Button variant="outline" size="sm" className="text-rfl-navy border-white hover:bg-white hover:text-rfl-navy">
-                    Sign In
-                  </Button>
-                </Link>
-              )}
+              ) : null}
             </div>
             {/* Hamburger toggle (mobile only) */}
             <button
@@ -461,8 +445,8 @@ export function Navbar() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-64 bg-rfl-navy text-white shadow-xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                {name ? (
+              {name && (
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded border border-white/20 overflow-hidden bg-white">
                     <img 
                       src={getTeamLogoPath(teamName)} 
@@ -473,11 +457,9 @@ export function Navbar() {
                       }}
                     />
                   </div>
-                ) : (
-                  <User className="w-5 h-5" />
-                )}
-                <span className="text-sm">{name ?? 'Guest'}</span>
-              </div>
+                  <span className="text-sm">{name}</span>
+                </div>
+              )}
               <button className="p-2 rounded hover:bg-rfl-light-blue/30" aria-label="Close menu" onClick={() => setMobileOpen(false)}>
                 <X className="w-5 h-5" />
               </button>
@@ -523,11 +505,7 @@ export function Navbar() {
                     Update Password
                   </button>
                 </>
-              ) : (
-                <Link href="/signin" className="block px-3 py-2 rounded-md bg-white text-rfl-navy font-medium" onClick={() => setMobileOpen(false)}>
-                  Sign In
-                </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
