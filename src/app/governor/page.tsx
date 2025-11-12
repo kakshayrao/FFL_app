@@ -434,7 +434,7 @@ export default function GovernorPage() {
   const aggregates = useMemo(() => {
     const by: Record<string, { entries: number; duration: number; distance: number; steps: number }> = {};
     for (const e of entriesForAggregates) {
-      const key = e.workout_type ?? 'unknown';
+      const key = e.workout_type ?? 'restdays';
       if (!by[key]) by[key] = { entries: 0, duration: 0, distance: 0, steps: 0 };
       by[key].entries += 1;
       by[key].duration += Number(e.duration ?? 0);
