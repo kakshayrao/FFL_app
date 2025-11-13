@@ -152,9 +152,14 @@ export default function LeaderboardsPage() {
   };
   const formatChallengeDate = (value?: string | null) => {
     if (!value) return '—';
-    const [y, m, d] = value.split('-');
-    if (!y || !m || !d) return value;
-    return `${d}-${m}-${y}`;
+    const parts = String(value).split('-');
+    if (parts.length !== 3) return String(value);
+    const [y, m, d] = parts;
+    if (!y || !m || !d) return String(value);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = parseInt(m, 10) - 1;
+    if (monthIndex < 0 || monthIndex > 11) return String(value);
+    return `${d} ${monthNames[monthIndex]}`;
   };
 
   // Period dropdown options (Overall + completed/in-progress weeks)
@@ -450,6 +455,7 @@ export default function LeaderboardsPage() {
               <div>
                 <CardTitle className="text-xl text-rfl-navy">Challenges</CardTitle>
                 <CardDescription>Team-wise scores per challenge</CardDescription>
+                <p className="text-xs text-gray-600 mt-1">All points are added in final leaderboard</p>
               </div>
               <div className="relative" ref={challengeDropdownRef}>
                 <button

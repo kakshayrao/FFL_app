@@ -49,6 +49,19 @@ function parseYmdLocal(s: string): Date {
   return new Date(y, (m||1)-1, d||1);
 }
 
+function formatDMY(s: string | null | undefined): string {
+  if (!s) return '—'
+  const parts = String(s).split('-')
+  if (parts.length !== 3) return String(s)
+  const [y, m, d] = parts
+  if (!y || !m || !d) return String(s)
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthIndex = parseInt(m) - 1
+  if (monthIndex < 0 || monthIndex > 11) return String(s)
+  const monthName = monthNames[monthIndex]
+  return `${d} ${monthName}`
+}
+
 const SEASON_START = '2025-10-25';
 
 export default function GovernorPage() {
@@ -973,7 +986,7 @@ export default function GovernorPage() {
                         </td>
                         <td className="py-2 pr-2 whitespace-nowrap">
                           {!editing ? (
-                            <span className="text-gray-700">{(ch.start_date || '—')} → {(ch.end_date || '—')}</span>
+                              <span className="text-gray-700">{formatDMY(ch.start_date)} → {formatDMY(ch.end_date)}</span>
                           ) : (
                             <div className="grid grid-cols-1 gap-1">
                               <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.start_date}

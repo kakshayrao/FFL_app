@@ -79,14 +79,18 @@ export default function MyChallengesPage() {
     load()
   }, [])
 
-  // Format 'YYYY-MM-DD' → 'DD-MM-YYYY'
+  // Format 'YYYY-MM-DD' → 'DD MMM'
   function formatDMY(s: string | null | undefined): string {
     if (!s) return '—'
     const parts = String(s).split('-')
     if (parts.length !== 3) return String(s)
     const [y, m, d] = parts
     if (!y || !m || !d) return String(s)
-    return `${d}-${m}-${y}`
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthIndex = parseInt(m) - 1
+    if (monthIndex < 0 || monthIndex > 11) return String(s)
+    const monthName = monthNames[monthIndex]
+    return `${d} ${monthName}`
   }
 
   const sortedChallenges = useMemo(() => challenges, [challenges])
