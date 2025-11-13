@@ -14,6 +14,42 @@ type Challenge = {
   rules_pdf_url?: string | null
 }
 
+function PDFModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full h-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-gray-900">Rules PDF</h2>
+          <button
+            onClick={onClose}
+            className="inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700"
+            aria-label="Close"
+          >
+            <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path
+                d="M15.5 4.5L4.5 15.5M4.5 4.5l11 11"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto">
+          <iframe src={pdfUrl} className="w-full h-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ChallengeDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -25,6 +61,7 @@ export default function ChallengeDetailPage() {
   const [challenge, setChallenge] = useState<Challenge | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showPdfModal, setShowPdfModal] = useState(false)
 
   useEffect(() => {
     if (!challengeId) return
@@ -84,7 +121,11 @@ export default function ChallengeDetailPage() {
     if (parts.length !== 3) return String(s)
     const [y, m, d] = parts
     if (!y || !m || !d) return String(s)
-    return `${d}-${m}-${y}`
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthIndex = parseInt(m) - 1
+    if (monthIndex < 0 || monthIndex > 11) return String(s)
+    const monthName = monthNames[monthIndex]
+    return `${d} ${monthName}`
   }
 
   function isChallengeActive(start?: string | null, end?: string | null): boolean {
@@ -165,11 +206,9 @@ export default function ChallengeDetailPage() {
               {challenge.description?.trim().length ? challenge.description : 'No rules provided for this challenge yet.'}
             </p>
             {challenge.rules_pdf_url && (
-              <Link
-                href={challenge.rules_pdf_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 underline underline-offset-2"
+              <button
+                onClick={() => setShowPdfModal(true)}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-700"
               >
                 View rules PDF
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -181,10 +220,14 @@ export default function ChallengeDetailPage() {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </Link>
+              </button>
             )}
           </section>
         </div>
+      )}
+
+      {showPdfModal && challenge?.rules_pdf_url && (
+        <PDFModal pdfUrl={challenge.rules_pdf_url} onClose={() => setShowPdfModal(false)} />
       )}
     </div>
   )
