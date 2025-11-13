@@ -11,6 +11,7 @@ type Challenge = {
   description: string
   start_date: string
   end_date: string
+  rules_pdf_url?: string | null
   scores: Record<string, number | null>
 }
 
@@ -36,7 +37,7 @@ export default function MyChallengesPage() {
 
         const { data: chRows } = await getSupabase()
           .from('special_challenges')
-          .select('id,name,description,start_date,end_date')
+          .select('id,name,description,start_date,end_date,rules_pdf_url')
           .order('created_at', { ascending: false })
         const { data: scRows } = await getSupabase()
           .from('special_challenge_team_scores')
@@ -50,6 +51,7 @@ export default function MyChallengesPage() {
             description: r.description || '',
             start_date: r.start_date || '',
             end_date: r.end_date || '',
+            rules_pdf_url: r.rules_pdf_url || null,
             scores: emptyScores(teamList),
           })
         })

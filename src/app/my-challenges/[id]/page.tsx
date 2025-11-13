@@ -11,6 +11,7 @@ type Challenge = {
   description: string
   start_date: string
   end_date: string
+  rules_pdf_url?: string | null
 }
 
 export default function ChallengeDetailPage() {
@@ -35,7 +36,7 @@ export default function ChallengeDetailPage() {
       try {
         const { data, error: fetchError } = await getSupabase()
           .from('special_challenges')
-          .select('id,name,description,start_date,end_date')
+          .select('id,name,description,start_date,end_date,rules_pdf_url')
           .eq('id', challengeId)
           .maybeSingle()
 
@@ -54,6 +55,7 @@ export default function ChallengeDetailPage() {
           description: data.description ?? '',
           start_date: data.start_date ?? '',
           end_date: data.end_date ?? '',
+          rules_pdf_url: data.rules_pdf_url ?? null,
         })
       } catch (err: any) {
         if (!isMounted) return
@@ -128,11 +130,11 @@ export default function ChallengeDetailPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-rfl-navy">Challenge Name</p>
-                <p className="mt-1 text-s tracking-wide text-gray-500">{challenge.name}</p>   
+                <p className="mt-1 text-sm tracking-wide text-gray-500">{challenge.name}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {isChallengeActive(challenge.start_date, challenge.end_date) ? (
-                  <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-3 py-1 text-xm font-medium text-green-700">
+                  <span className="inline-flex items-center rounded-full border border-green-200 bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
                     Active
                   </span>
                 ) : (
@@ -162,6 +164,25 @@ export default function ChallengeDetailPage() {
             <p className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
               {challenge.description?.trim().length ? challenge.description : 'No rules provided for this challenge yet.'}
             </p>
+            {challenge.rules_pdf_url && (
+              <Link
+                href={challenge.rules_pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 underline underline-offset-2"
+              >
+                View rules PDF
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M6 7.5V6a2 2 0 0 1 2-2h6m0 0-4.5 4.5M14 4l-4.5 4.5M4 9v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Link>
+            )}
           </section>
         </div>
       )}

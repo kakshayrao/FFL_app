@@ -19,6 +19,7 @@ type Challenge = {
   description: string;
   start_date: string; // YYYY-MM-DD
   end_date: string;   // YYYY-MM-DD
+  rules_pdf_url?: string | null;
   scores: Record<string, number | null>; // key: team_id
 };
 
@@ -28,6 +29,8 @@ const THIRTEEN_PLAYER_TEAMS = new Set<string>([
   '7059747a-d1b8-479c-aff2-6a6a79c88998', // Interstellar
 ]);
 const THIRTEEN_TEAM_FACTOR = 12 / 13;
+
+const CHALLENGE_RULES_BUCKET = 'challenge-rules';
 
 // Local-date helpers (device-local semantics)
 function ymdLocal(d: Date) {
@@ -66,7 +69,7 @@ export default function GovernorPage() {
   const [teamMembers, setTeamMembers] = useState<Account[]>([]);
   const [analyticsEvents, setAnalyticsEvents] = useState<Array<{ received_at: string } & Record<string, any>>>([]);
   // Tab state for section navigation
-  type GovTab = 'teamLeaderboard' | 'activitySnapshot' | 'leagueSummary' | 'teamSummary' | 'individualLeaderboard';
+  type GovTab = 'teamLeaderboard' | 'challenges' | 'activitySnapshot' | 'leagueSummary' | 'teamSummary' | 'individualLeaderboard';
   const [tab, setTab] = useState<GovTab>('teamLeaderboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   // Sync tab from hash so Navbar mobile links can target sections
@@ -74,7 +77,7 @@ export default function GovernorPage() {
     const applyFromHash = () => {
       if (typeof window === 'undefined') return;
       const h = window.location.hash.replace('#','');
-      const allowed = new Set(['teamLeaderboard','activitySnapshot','leagueSummary','teamSummary','individualLeaderboard']);
+      const allowed = new Set(['teamLeaderboard','challenges','activitySnapshot','leagueSummary','teamSummary','individualLeaderboard']);
       if (allowed.has(h)) setTab(h as GovTab);
     };
     applyFromHash();
@@ -89,24 +92,85 @@ export default function GovernorPage() {
   const [createOpen, setCreateOpen] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [descOpenId, setDescOpenId] = useState<string | null>(null);
+  // Governor Challenges tab: selected challenge for leaderboard view
+  const [selectedChallengeIdGov, setSelectedChallengeIdGov] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ name: string; description: string; start_date: string; end_date: string }>({
     name: '',
     description: '',
     start_date: '',
     end_date: '',
   });
+  const [draftPdf, setDraftPdf] = useState<File | null>(null);
+  const [pendingPdf, setPendingPdf] = useState<Record<string, File | null>>({});
+  const [removePdfFlags, setRemovePdfFlags] = useState<Record<string, boolean>>({});
 
   function generateUuid() {
     try { return crypto.randomUUID(); } catch { return `ch_${Date.now()}`; }
+  }
+  function handleDraftPdf(file: File | null) {
+    setDraftPdf(file);
+  }
+  function handlePendingPdf(challengeId: string, file: File | null) {
+    setPendingPdf(prev => ({ ...prev, [challengeId]: file }));
+    if (file) {
+      setRemovePdfFlags(prev => {
+        const next = { ...prev };
+        delete next[challengeId];
+        return next;
+      });
+    }
+  }
+  function markRemovePdf(challengeId: string) {
+    setRemovePdfFlags(prev => ({ ...prev, [challengeId]: true }));
+    setPendingPdf(prev => ({ ...prev, [challengeId]: null }));
+  }
+  function clearRemovePdf(challengeId: string) {
+    setRemovePdfFlags(prev => {
+      const next = { ...prev };
+      delete next[challengeId];
+      return next;
+    });
   }
   function emptyScores(teamList: Team[]) {
     const s: Record<string, number | null> = {};
     for (const t of teamList) s[String(t.id)] = null;
     return s;
   }
+  function sanitizeFileName(name: string) {
+    return name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  }
+  function isPdfFile(file: File) {
+    const mime = (file.type || '').toLowerCase();
+    if (mime) return mime === 'application/pdf';
+    return file.name.toLowerCase().endsWith('.pdf');
+  }
+  async function uploadChallengeRulesPdf(challengeId: string, file: File) {
+    if (!isPdfFile(file)) {
+      throw new Error('Only PDF files are supported for challenge rules.');
+    }
+    const supabase = getSupabase();
+    const safeName = sanitizeFileName(file.name || `challenge-rules.pdf`);
+    const path = `rules/${challengeId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from(CHALLENGE_RULES_BUCKET)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || 'application/pdf',
+      });
+    if (uploadError) {
+      throw uploadError;
+    }
+    const { data } = supabase.storage.from(CHALLENGE_RULES_BUCKET).getPublicUrl(path);
+    if (!data?.publicUrl) {
+      throw new Error('Failed to retrieve public URL for uploaded PDF.');
+    }
+    return data.publicUrl;
+  }
   function openCreate() {
     setDraft({ name: '', description: '', start_date: '', end_date: '' });
     setCreateOpen(true);
+    setDraftPdf(null);
   }
   async function addChallenge() {
     if (!draft.name.trim()) return;
@@ -116,14 +180,31 @@ export default function GovernorPage() {
       start_date: draft.start_date || null,
       end_date: draft.end_date || null,
     } as any;
-    const { data, error } = await getSupabase()
+    const supabase = getSupabase();
+    const { data, error } = await supabase
       .from('special_challenges')
       .insert(payload)
-      .select('id,name,description,start_date,end_date')
+      .select('id,name,description,start_date,end_date,rules_pdf_url')
       .single();
     if (error) {
       alert(`Create failed: ${error.message}`);
       return;
+    }
+    let rulesPdfUrl = data.rules_pdf_url || null;
+    if (draftPdf) {
+      try {
+        const uploadedUrl = await uploadChallengeRulesPdf(String(data.id), draftPdf);
+        const { error: updErr } = await supabase
+          .from('special_challenges')
+          .update({ rules_pdf_url: uploadedUrl })
+          .eq('id', data.id);
+        if (updErr) {
+          throw updErr;
+        }
+        rulesPdfUrl = uploadedUrl;
+      } catch (err: any) {
+        alert(`PDF upload failed: ${err?.message || err}`);
+      }
     }
     const row: Challenge = {
       id: String(data.id),
@@ -131,10 +212,12 @@ export default function GovernorPage() {
       description: data.description || '',
       start_date: data.start_date || '',
       end_date: data.end_date || '',
+      rules_pdf_url: rulesPdfUrl,
       scores: emptyScores(teams),
     };
     setChallenges(prev => [row, ...prev]);
     setCreateOpen(false);
+    setDraftPdf(null);
   }
   function startEdit(id: string) {
     setEditingId(id);
@@ -154,7 +237,8 @@ export default function GovernorPage() {
       start_date: current.start_date || null,
       end_date: current.end_date || null,
     } as any;
-    const { error: updErr } = await getSupabase()
+    const supabase = getSupabase();
+    const { error: updErr } = await supabase
       .from('special_challenges')
       .update(upd)
       .eq('id', id);
@@ -185,7 +269,7 @@ export default function GovernorPage() {
       }
     }
     if (deleteTeamIds.length) {
-      const { error: delErr } = await getSupabase()
+      const { error: delErr } = await supabase
         .from('special_challenge_team_scores')
         .delete()
         .eq('challenge_id', id)
@@ -196,8 +280,38 @@ export default function GovernorPage() {
       }
     }
 
+    let nextRulesUrl = current.rules_pdf_url || null;
+    if (removePdfFlags[id]) {
+      const { error: clearErr } = await supabase
+        .from('special_challenges')
+        .update({ rules_pdf_url: null })
+        .eq('id', id);
+      if (clearErr) {
+        alert(`Save failed (remove PDF): ${clearErr.message}`);
+        return;
+      }
+      nextRulesUrl = null;
+      clearRemovePdf(id);
+    } else if (pendingPdf[id]) {
+      try {
+        const uploadedUrl = await uploadChallengeRulesPdf(id, pendingPdf[id]!);
+        const { error: updPdfErr } = await supabase
+          .from('special_challenges')
+          .update({ rules_pdf_url: uploadedUrl })
+          .eq('id', id);
+        if (updPdfErr) throw updPdfErr;
+        nextRulesUrl = uploadedUrl;
+      } catch (err: any) {
+        alert(`Save failed (upload PDF): ${err?.message || err}`);
+        return;
+      } finally {
+        setPendingPdf(prev => ({ ...prev, [id]: null }));
+      }
+    }
+
+    setPendingPdf(prev => ({ ...prev, [id]: null }));
     // Update local state last
-    setChallenges(prev => prev.map(ch => ch.id === id ? { ...ch, ...payload } : ch));
+    setChallenges(prev => prev.map(ch => ch.id === id ? { ...ch, ...payload, rules_pdf_url: nextRulesUrl } : ch));
     setEditingId(null);
   }
   async function deleteChallenge(id: string) {
@@ -358,9 +472,9 @@ export default function GovernorPage() {
 
         // ---- Load Special Challenges + scores ----
         {
-          const { data: chRows } = await getSupabase()
-            .from('special_challenges')
-            .select('id,name,description,start_date,end_date')
+        const { data: chRows } = await getSupabase()
+          .from('special_challenges')
+          .select('id,name,description,start_date,end_date,rules_pdf_url')
             .order('created_at', { ascending: false });
           const { data: scRows } = await getSupabase()
             .from('special_challenge_team_scores')
@@ -373,6 +487,7 @@ export default function GovernorPage() {
               description: r.description || '',
               start_date: r.start_date || '',
               end_date: r.end_date || '',
+              rules_pdf_url: r.rules_pdf_url || null,
               scores: emptyScores(teamList),
             });
           });
@@ -391,6 +506,19 @@ export default function GovernorPage() {
     };
     load();
   }, [asOf, selectedTeamId]);
+
+  // Keep governor tab's selected challenge in sync with loaded challenges (prefer active challenge)
+  useEffect(() => {
+    if (!challenges.length) { setSelectedChallengeIdGov(null); return; }
+    const today = new Date();
+    const y = today.getFullYear(), m = String(today.getMonth()+1).padStart(2,'0'), d = String(today.getDate()).padStart(2,'0');
+    const t = `${y}-${m}-${d}`;
+    const active = challenges.find(c => t >= String(c.start_date || '') && t <= String(c.end_date || ''));
+    setSelectedChallengeIdGov(prev => {
+      if (prev && challenges.some(c => c.id === prev)) return prev;
+      return (active?.id) || challenges[0].id;
+    });
+  }, [challenges]);
 
   // Load accounts for selected team to include players and leaders even if they have 0 entries
   useEffect(() => {
@@ -631,6 +759,7 @@ export default function GovernorPage() {
         {/* Desktop tabs */}
         <div className="hidden md:flex items-center gap-2">
           <button className={`px-3 py-1.5 rounded text-sm ${tab==='teamLeaderboard'?'bg-rfl-navy text-white':'bg-gray-100 text-gray-800'}`} onClick={()=>{ setTab('teamLeaderboard'); if (typeof window!=='undefined') window.location.hash='teamLeaderboard'; }}>Team Leaderboard</button>
+          <button className={`px-3 py-1.5 rounded text-sm ${tab==='challenges'?'bg-rfl-navy text-white':'bg-gray-100 text-gray-800'}`} onClick={()=>{ setTab('challenges'); if (typeof window!=='undefined') window.location.hash='challenges'; }}>Challenges</button>
           <button className={`px-3 py-1.5 rounded text-sm ${tab==='activitySnapshot'?'bg-rfl-navy text-white':'bg-gray-100 text-gray-800'}`} onClick={()=>{ setTab('activitySnapshot'); if (typeof window!=='undefined') window.location.hash='activitySnapshot'; }}>League Activity Snapshot</button>
           <button className={`px-3 py-1.5 rounded text-sm ${tab==='leagueSummary'?'bg-rfl-navy text-white':'bg-gray-100 text-gray-800'}`} onClick={()=>{ setTab('leagueSummary'); if (typeof window!=='undefined') window.location.hash='leagueSummary'; }}>League Summary</button>
           <button className={`px-3 py-1.5 rounded text-sm ${tab==='teamSummary'?'bg-rfl-navy text-white':'bg-gray-100 text-gray-800'}`} onClick={()=>{ setTab('teamSummary'); if (typeof window!=='undefined') window.location.hash='teamSummary'; }}>Team Summary</button>
@@ -645,6 +774,7 @@ export default function GovernorPage() {
             <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
               {[
                 {k:'teamLeaderboard', label:'Team Leaderboard'},
+                {k:'challenges', label:'Challenges'},
                 {k:'activitySnapshot', label:'League Activity Snapshot'},
                 {k:'leagueSummary', label:'League Summary'},
                 {k:'teamSummary', label:'Team Summary'},
@@ -659,7 +789,7 @@ export default function GovernorPage() {
         </div>
       </div>
 
-      {/* Card 1: Team leaderboard + Special Challenges Leaderboard */}
+      {/* Card 1: Team leaderboard */}
       {tab === 'teamLeaderboard' && (
       <>
         <div className="bg-white rounded-lg shadow p-4">
@@ -693,130 +823,265 @@ export default function GovernorPage() {
             </table>
           </div>
         </div>
-
-        {/* Special Challenges Leaderboard */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">Special Challenges Leaderboard</h2>
-            <button
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white hover:opacity-90"
-              onClick={openCreate}
-            >
-              <Plus className="w-4 h-4" /> Add Challenge
-            </button>
-          </div>
-
-          {createOpen && (
-            <div className="mb-3 border rounded p-3 bg-gray-50">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <input className="border rounded px-2 py-1 text-sm" placeholder="Challenge name"
-                  value={draft.name} onChange={(e)=>setDraft(v=>({...v, name: e.target.value}))} />
-                <input className="border rounded px-2 py-1 text-sm" placeholder="Start date (YYYY-MM-DD)"
-                  value={draft.start_date} onChange={(e)=>setDraft(v=>({...v, start_date: e.target.value}))} />
-                <input className="border rounded px-2 py-1 text-sm" placeholder="End date (YYYY-MM-DD)"
-                  value={draft.end_date} onChange={(e)=>setDraft(v=>({...v, end_date: e.target.value}))} />
-                <div className="flex items-center gap-2">
-                  <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white"
-                    onClick={addChallenge}><Save className="w-4 h-4" /> Save</button>
-                  <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm border"
-                    onClick={()=>setCreateOpen(false)}><X className="w-4 h-4" /> Cancel</button>
-                </div>
-              </div>
-              <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2} placeholder="Description"
-                value={draft.description} onChange={(e)=>setDraft(v=>({...v, description: e.target.value}))} />
-            </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[720px]">
-              <thead className="text-left text-gray-600">
-                <tr>
-                  <th className="py-2 pr-2 w-64">Challenge</th>
-                  <th className="py-2 pr-2 w-40">Date Range</th>
-                  {teams.map(t => (
-                    <th key={String(t.id)} className="py-2 px-2 text-right whitespace-nowrap">{t.name}</th>
-                  ))}
-                  <th className="py-2 px-2 text-right w-28">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {challenges.map(ch => {
-                  const editing = editingId === ch.id;
-                  return (
-                    <tr key={ch.id} className="border-t align-top">
-                      <td className="py-2 pr-2">
-                        {!editing ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-rfl-navy">{ch.name}</span>
-                            <button className="p-1 rounded hover:bg-gray-100" onClick={()=> setDescOpenId(v => v === ch.id ? null : ch.id)} title="Show description">
-                              <Info className="w-4 h-4 text-gray-600" />
-                            </button>
-                          </div>
-                        ) : (
-                          <input className="border rounded px-2 py-1 text-sm w-full" value={ch.name}
-                            onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, name: e.target.value }) : c))} />
-                        )}
-                        {descOpenId === ch.id && !editing && ch.description && (
-                          <div className="mt-2 text-xs text-gray-600 whitespace-pre-wrap">{ch.description}</div>
-                        )}
-                        {editing && (
-                          <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2}
-                            value={ch.description}
-                            onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, description: e.target.value }) : c))} />
-                        )}
-                      </td>
-                      <td className="py-2 pr-2 whitespace-nowrap">
-                        {!editing ? (
-                          <span className="text-gray-700">{(ch.start_date || '—')} → {(ch.end_date || '—')}</span>
-                        ) : (
-                          <div className="grid grid-cols-1 gap-1">
-                            <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.start_date}
-                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, start_date: e.target.value }) : c))} />
-                            <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.end_date}
-                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, end_date: e.target.value }) : c))} />
-                          </div>
-                        )}
-                      </td>
-                      {teams.map(t => (
-                        <td key={`${ch.id}-${String(t.id)}`} className="py-2 px-2 text-right">
-                          {!editing ? (
-                            <span className="[font-variant-numeric:tabular-nums]">{ch.scores[String(t.id)] ?? ''}</span>
-                          ) : (
-                            <input
-                              className="w-20 border rounded px-2 py-1 text-sm text-right"
-                              value={ch.scores[String(t.id)] ?? ''}
-                              onChange={(e)=> setScore(ch.id, String(t.id), e.target.value)}
-                              inputMode="numeric"
-                            />
-                          )}
-                        </td>
-                      ))}
-                      <td className="py-2 px-2 text-right whitespace-nowrap">
-                        {!editing ? (
-                          <div className="inline-flex items-center gap-2">
-                            <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> startEdit(ch.id)} title="Edit"><Pencil className="w-4 h-4" /></button>
-                            <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> deleteChallenge(ch.id)} title="Delete"><Trash2 className="w-4 h-4 text-red-600" /></button>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-2">
-                            <button className="p-1 rounded border bg-rfl-navy text-white hover:opacity-90" onClick={()=> saveEdit(ch.id, {})} title="Save"><Save className="w-4 h-4" /></button>
-                            <button className="p-1 rounded border hover:bg-gray-50" onClick={cancelEdit} title="Cancel"><X className="w-4 h-4" /></button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!challenges.length && (
-                  <tr><td colSpan={2 + teams.length + 1} className="py-8 text-center text-gray-500">No challenges yet.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </>
       )}
 
+      {/* Challenges tab: Manage and view leaderboard-style scores */}
+      {tab === 'challenges' && (
+        <div className="space-y-4">
+          {/* Manage Challenges */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold">Challenges</h2>
+              <button
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white hover:opacity-90"
+                onClick={openCreate}
+              >
+                <Plus className="w-4 h-4" /> Add Challenge
+              </button>
+            </div>
+
+            {createOpen && (
+              <div className="mb-3 border rounded p-3 bg-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <input className="border rounded px-2 py-1 text-sm" placeholder="Challenge name"
+                    value={draft.name} onChange={(e)=>setDraft(v=>({...v, name: e.target.value}))} />
+                  <input className="border rounded px-2 py-1 text-sm" placeholder="Start date (YYYY-MM-DD)"
+                    value={draft.start_date} onChange={(e)=>setDraft(v=>({...v, start_date: e.target.value}))} />
+                  <input className="border rounded px-2 py-1 text-sm" placeholder="End date (YYYY-MM-DD)"
+                    value={draft.end_date} onChange={(e)=>setDraft(v=>({...v, end_date: e.target.value}))} />
+                  <div className="flex items-center gap-2">
+                    <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm bg-rfl-navy text-white"
+                      onClick={addChallenge}><Save className="w-4 h-4" /> Save</button>
+                    <button className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-sm border"
+                      onClick={()=>{ setCreateOpen(false); setDraftPdf(null); }}><X className="w-4 h-4" /> Cancel</button>
+                  </div>
+                </div>
+                <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2} placeholder="Description"
+                  value={draft.description} onChange={(e)=>setDraft(v=>({...v, description: e.target.value}))} />
+                <div className="mt-3 flex flex-col gap-1 text-xs text-gray-600">
+                  <label className="font-semibold text-gray-700">Attach rules PDF (optional)</label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e)=> handleDraftPdf(e.target.files?.[0] ?? null)}
+                    className="text-sm text-gray-700 file:mr-2 file:rounded file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:font-medium hover:file:bg-gray-50"
+                  />
+                  {draftPdf && (
+                    <span className="text-gray-600">Selected: {draftPdf.name}</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
+                <thead className="text-left text-gray-600">
+                  <tr>
+                    <th className="py-2 pr-2 w-64">Challenge</th>
+                    <th className="py-2 pr-2 w-40">Date Range</th>
+                    {teams.map(t => (
+                      <th key={String(t.id)} className="py-2 px-2 text-right whitespace-nowrap">{t.name}</th>
+                    ))}
+                    <th className="py-2 px-2 text-right w-28">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {challenges.map(ch => {
+                    const editing = editingId === ch.id;
+                    return (
+                      <tr key={ch.id} className="border-t align-top">
+                        <td className="py-2 pr-2">
+                          {!editing ? (
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-rfl-navy">{ch.name}</span>
+                              <button className="p-1 rounded hover:bg-gray-100" onClick={()=> setDescOpenId(v => v === ch.id ? null : ch.id)} title="Show description">
+                                <Info className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </div>
+                          ) : (
+                            <input className="border rounded px-2 py-1 text-sm w-full" value={ch.name}
+                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, name: e.target.value }) : c))} />
+                          )}
+                          {descOpenId === ch.id && !editing && ch.description && (
+                            <div className="mt-2 text-xs text-gray-600 whitespace-pre-wrap">{ch.description}</div>
+                          )}
+                          {editing && (
+                            <textarea className="mt-2 w-full border rounded px-2 py-1 text-sm" rows={2}
+                              value={ch.description}
+                              onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, description: e.target.value }) : c))} />
+                          )}
+                          {!editing && ch.rules_pdf_url && (
+                            <div className="mt-2 text-xs">
+                              <a
+                                href={ch.rules_pdf_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-500 underline"
+                              >
+                                View rules PDF
+                              </a>
+                            </div>
+                          )}
+                          {editing && (
+                            <div className="mt-3 space-y-2 text-xs text-gray-600">
+                              {ch.rules_pdf_url && !removePdfFlags[ch.id] && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <a
+                                    href={ch.rules_pdf_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-500 underline"
+                                  >
+                                    Current rules PDF
+                                  </a>
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                                    onClick={()=> markRemovePdf(ch.id)}
+                                  >
+                                    Remove file
+                                  </button>
+                                </div>
+                              )}
+                              {removePdfFlags[ch.id] && (
+                                <div className="flex flex-wrap items-center gap-2 text-red-600">
+                                  <span>This PDF will be removed when you save.</span>
+                                  <button
+                                    type="button"
+                                    className="rounded border border-red-200 px-2 py-1 text-xs font-medium hover:bg-red-50"
+                                    onClick={()=> clearRemovePdf(ch.id)}
+                                  >
+                                    Undo
+                                  </button>
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-1">
+                                <label className="font-semibold text-gray-700">Upload new PDF</label>
+                                <input
+                                  type="file"
+                                  accept="application/pdf"
+                                  onChange={(e)=> handlePendingPdf(ch.id, e.target.files?.[0] ?? null)}
+                                  className="text-sm text-gray-700 file:mr-2 file:rounded file:border file:border-gray-300 file:bg-white file:px-2 file:py-1 file:text-xs file:font-medium hover:file:bg-gray-50"
+                                />
+                                {pendingPdf[ch.id] && (
+                                  <span className="text-gray-600">Selected: {pendingPdf[ch.id]?.name}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {!editing ? (
+                            <span className="text-gray-700">{(ch.start_date || '—')} → {(ch.end_date || '—')}</span>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-1">
+                              <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.start_date}
+                                onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, start_date: e.target.value }) : c))} />
+                              <input className="border rounded px-2 py-1 text-sm" placeholder="YYYY-MM-DD" value={ch.end_date}
+                                onChange={(e)=> setChallenges(prev => prev.map(c => c.id===ch.id ? ({ ...c, end_date: e.target.value }) : c))} />
+                            </div>
+                          )}
+                        </td>
+                        {teams.map(t => (
+                          <td key={`${ch.id}-${String(t.id)}`} className="py-2 px-2 text-right">
+                            {!editing ? (
+                              <span className="[font-variant-numeric:tabular-nums]">{ch.scores[String(t.id)] ?? ''}</span>
+                            ) : (
+                              <input
+                                className="w-20 border rounded px-2 py-1 text-sm text-right"
+                                value={ch.scores[String(t.id)] ?? ''}
+                                onChange={(e)=> setScore(ch.id, String(t.id), e.target.value)}
+                                inputMode="numeric"
+                              />
+                            )}
+                          </td>
+                        ))}
+                        <td className="py-2 px-2 text-right whitespace-nowrap">
+                          {!editing ? (
+                            <div className="inline-flex items-center gap-2">
+                              <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> startEdit(ch.id)} title="Edit"><Pencil className="w-4 h-4" /></button>
+                              <button className="p-1 rounded border hover:bg-gray-50" onClick={()=> deleteChallenge(ch.id)} title="Delete"><Trash2 className="w-4 h-4 text-red-600" /></button>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-2">
+                              <button className="p-1 rounded border bg-rfl-navy text-white hover:opacity-90" onClick={()=> saveEdit(ch.id, {})} title="Save"><Save className="w-4 h-4" /></button>
+                              <button className="p-1 rounded border hover:bg-gray-50" onClick={cancelEdit} title="Cancel"><X className="w-4 h-4" /></button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!challenges.length && (
+                    <tr><td colSpan={2 + teams.length + 1} className="py-8 text-center text-gray-500">No challenges yet.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Leaderboard-style view for selected challenge (matches player view) */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-semibold">Challenge Leaderboard</h2>
+              <div>
+                <select
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+                  value={selectedChallengeIdGov || ''}
+                  onChange={(e)=> setSelectedChallengeIdGov(e.target.value || null)}
+                  disabled={!challenges.length}
+                >
+                  {challenges.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {(() => {
+              const chosen = selectedChallengeIdGov ? challenges.find(c=>c.id===selectedChallengeIdGov) || null : null;
+              const rows = (chosen ? teams.map(tm => {
+                const sc = challenges.find(c=>c.id===chosen.id)?.scores[String(tm.id)] ?? null;
+                return { team_id: String(tm.id), team_name: tm.name, score: sc == null ? null : Number(sc) };
+              }) : []).sort((a,b)=> {
+                const as = a.score == null ? -Infinity : Number(a.score);
+                const bs = b.score == null ? -Infinity : Number(b.score);
+                return bs - as || a.team_name.localeCompare(b.team_name);
+              });
+              return (
+                <div className="overflow-x-auto">
+                  {!chosen ? (
+                    <div className="py-8 text-gray-600 text-center text-sm">No challenges yet.</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="text-left text-gray-600">
+                        <tr>
+                          <th className="py-2 pr-2 w-12">Rank</th>
+                          <th className="py-2 pr-2">Team</th>
+                          <th className="py-2 pr-2 text-right w-24">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, idx) => (
+                          <tr key={r.team_id} className="border-t">
+                            <td className="py-2 pr-2 [font-variant-numeric:tabular-nums]">{idx+1}</td>
+                            <td className="py-2 pr-2">
+                              <span className="text-sm text-rfl-navy font-medium">{r.team_name}</span>
+                            </td>
+                            <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold">
+                              {r.score == null ? 'Not updated' : r.score}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
       {/* Card 2: Aggregate activity snapshot (moved up under leaderboard) */}
       {tab === 'activitySnapshot' && (
       <div className="bg-white rounded-lg shadow p-4">
