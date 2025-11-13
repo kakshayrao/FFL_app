@@ -455,7 +455,7 @@ export default function LeaderboardsPage() {
               <div>
                 <CardTitle className="text-xl text-rfl-navy">Challenges</CardTitle>
                 <CardDescription>Team-wise scores per challenge</CardDescription>
-                <p className="text-xs text-gray-600 mt-1">All points are added in final leaderboard</p>
+                <p className="text-xs text-gray-600 mt-1">All points are added to the Team leaderboard above</p>
               </div>
               <div className="relative" ref={challengeDropdownRef}>
                 <button
