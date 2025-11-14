@@ -203,7 +203,7 @@ export default function RulesPage() {
           </div>
           <div className="flex items-start gap-3">
             <Heart className="w-6 h-6 text-pink-500 mt-0.5 flex-shrink-0" />
-            <span className="text-sm sm:text-base"><strong>PFL Medical Emergency (ME) Rule:</strong> If a player has a verified ME (7+ days, approved by Governors), their rest days are used first. If more days are needed, other PFL players may voluntarily donate unused rest days.</span>
+            <span className="text-sm sm:text-base"><strong>FFL Medical Emergency (ME) Rule:</strong> If a player has a verified ME (7+ days, approved by Governors), their rest days are used first. If more days are needed, other PFL players may voluntarily donate unused rest days.</span>
           </div>
         </CardContent>
       </Card>

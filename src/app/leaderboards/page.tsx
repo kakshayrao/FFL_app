@@ -450,14 +450,17 @@ export default function LeaderboardsPage() {
 
         {/* Challenges dropdown + team-wise scores */}
         <Card className="bg-white shadow-md">
+          {/* ---------- Updated CardHeader for Challenges (stable layout) ---------- */}
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="flex-1 min-w-0">
                 <CardTitle className="text-xl text-rfl-navy">Challenges</CardTitle>
                 <CardDescription>Team-wise scores per challenge</CardDescription>
                 <p className="text-xs text-gray-600 mt-1">All points are added to the Team leaderboard above</p>
               </div>
-              <div className="relative" ref={challengeDropdownRef}>
+
+              {/* stable-width controls column */}
+              <div className="flex-shrink-0" ref={challengeDropdownRef}>
                 <button
                   type="button"
                   onClick={() => {
@@ -465,25 +468,14 @@ export default function LeaderboardsPage() {
                     setChallengeDropdownOpen((prev) => !prev);
                   }}
                   disabled={isLoadingChallenges || !challenges.length}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md transition ${
+                  className={`flex items-center justify-between px-3 py-2 text-sm border rounded-md transition w-[160px] ${
                     isLoadingChallenges || !challenges.length
                       ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
                       : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent'
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium text-rfl-navy">
-                      {selectedChallenge
-                        ? selectedChallenge.name
-                        : isLoadingChallenges
-                          ? 'Loading...'
-                          : 'Select challenge'}
-                    </span>
-                    {selectedChallenge && isActiveChallenge(selectedChallenge) && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
-                        Active
-                      </span>
-                    )}
+                  <span className="truncate max-w-[110px] font-medium text-rfl-navy">
+                    {selectedChallenge ? selectedChallenge.name : 'Select'}
                   </span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${challengeDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -529,19 +521,23 @@ export default function LeaderboardsPage() {
               </div>
             </div>
           </CardHeader>
+
           <CardContent>
             {!challenges.length && !isLoadingChallenges ? (
               <div className="py-8 text-gray-600 text-center text-sm">No challenges yet.</div>
             ) : (
               <div className="overflow-hidden">
+                {/* ---------- Updated selected challenge display (stable badge + date) ---------- */}
                 {selectedChallenge && (
-                  <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
-                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 text-rfl-navy font-semibold border border-gray-200">
+                  <div className="mb-4 flex items-center gap-3 text-sm">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-gray-100 text-rfl-navy font-semibold border border-gray-200 w-[180px] truncate">
                       {selectedChallenge.name}
                     </span>
-                    <span className="text-gray-600">
+
+                    <span className="text-gray-600 flex-1 truncate">
                       {formatChallengeDate(selectedChallenge.start_date)} to {formatChallengeDate(selectedChallenge.end_date)}
                     </span>
+
                     {isActiveChallenge(selectedChallenge) && (
                       <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
                         Active

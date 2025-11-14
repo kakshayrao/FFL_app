@@ -657,11 +657,11 @@ export default function DashboardPage() {
               
               {/* Row 1: Points and Avg RR */}
               <div className="grid grid-cols-2 gap-3 text-center mb-4">
-                <div className="p-3 bg-rfl-peach/50 rounded">
+              <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
                   <div className="text-lg font-bold text-rfl-coral">{myPoints}</div>
                 </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Avg RR</div>
                   <div className="text-lg font-bold text-rfl-navy">{myAvgRR !== null ? Number(myAvgRR).toFixed(2) : '—'}</div>
               </div>
@@ -669,15 +669,16 @@ export default function DashboardPage() {
 
               {/* Row 2: Rest Days Used, Rest Days Unused, Missed Days */}
               <div className="grid grid-cols-3 gap-3 text-center mb-4">
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                {/* <div className="p-3 bg-[#abbaab] rounded"> */}
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
                   <div className="text-lg font-bold text-rfl-navy">{myRestUsed}</div>
                   </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Unused</div>
                   <div className="text-lg font-bold text-rfl-navy">{Math.max(0, 18 - myRestUsed)}</div>
                 </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{myMissedDays}</div>
               </div>
@@ -725,19 +726,19 @@ export default function DashboardPage() {
                   ) : null}
                 </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center ">
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+              <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
                     <div className="text-lg font-bold text-rfl-coral">{teamPoints ?? '—'}</div>
                   </div>
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                     <div className="text-xs text-gray-600">Avg RR</div>
                     <div className="text-lg font-bold text-rfl-navy">{teamAvgRR !== null ? Number(teamAvgRR).toFixed(2) : '—'}</div>
                   </div>
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamMissedWeek}</div>
                   </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamRestWeek}</div>
                 </div>
@@ -990,5 +991,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-

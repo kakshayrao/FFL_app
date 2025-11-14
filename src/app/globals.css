@@ -148,6 +148,11 @@
     
   }
 }
+
+.gradient-box {
+  background: #e1ece1;
+}
+
 /* Hide scrollbar for team column horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */

@@ -422,19 +422,19 @@ export default function TeamPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 bg-rfl-peach/50 rounded">
+          <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Points</div>
               <div className="text-lg font-bold text-rfl-coral">{totals.pts}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Avg RR</div>
               <div className="text-lg font-bold text-rfl-navy">{totals.rr}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Days Missed</div>
               <div className="text-lg font-bold text-rfl-navy">{teamMissedDays}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Rest Days Used</div>
               <div className="text-lg font-bold text-rfl-navy">{teamRestDays}</div>
             </div>
