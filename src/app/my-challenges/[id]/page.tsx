@@ -17,33 +17,38 @@ type Challenge = {
 function PDFModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2"
+      className="fixed inset-0 z-50 bg-black bg-opacity-50"
       onClick={onClose}
     >
-      <div
-        className="relative w-full h-full max-w-5xl bg-white rounded-lg shadow-lg overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Rules PDF</h2>
-          <button
-            onClick={onClose}
-            className="inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700"
-            aria-label="Close"
-          >
-            <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path
-                d="M15.5 4.5L4.5 15.5M4.5 4.5l11 11"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-        <div className="flex-1 overflow-auto">
-          <iframe src={pdfUrl} className="w-full h-full" />
+      <div className="flex items-center justify-center min-h-screen p-6">
+        <div
+          className="relative w-full max-w-7xl max-h-[95vh] bg-white rounded-lg shadow-lg overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <h2 className="text-lg font-semibold text-gray-900">Rules PDF</h2>
+            <button
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700"
+              aria-label="Close"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M15.5 4.5L4.5 15.5M4.5 4.5l11 11"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Use object for PDF display (better mobile scrolling support) with iframe fallback */}
+            <object data={pdfUrl} type="application/pdf" className="w-full h-full min-h-[72vh]">
+              <iframe src={pdfUrl} className="w-full h-full min-h-[72vh]" title="Rules PDF" />
+            </object>
+          </div>
         </div>
       </div>
     </div>
