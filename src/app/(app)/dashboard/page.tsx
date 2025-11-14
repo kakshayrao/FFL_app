@@ -84,6 +84,12 @@ function formatLocalDateLabel(yyyyMmDd: string): string {
   return localDate.toDateString();
 }
 
+function formatDMY(iso: string) {
+  const [y, m, d] = iso.split('-').map((v) => parseInt(v, 10));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return `${String(dt.getDate()).padStart(2, '0')} ${dt.toLocaleString('en-US', { month: 'short' })}`;
+}
+
 type ActivityConfig = {
   name: string;
   fields: Array<'duration' | 'distance' | 'steps' | 'holes'>;
@@ -193,6 +199,19 @@ export default function DashboardPage() {
   const [myMissedDays, setMyMissedDays] = useState<number>(0);
   const [myRestUsed, setMyRestUsed] = useState<number>(0);
   const [viewWeekStart, setViewWeekStart] = useState<Date>(() => seasonFixedStart());
+
+  // On mount, default view to the current week (Sunday→Saturday) if today falls inside the season
+  useEffect(() => {
+    const today = new Date();
+    const seasonStart = seasonFixedStart();
+    const seasonEnd = seasonFixedEnd();
+    const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    if (todayUtc.getTime() < seasonStart.getTime() || todayUtc.getTime() > seasonEnd.getTime()) return;
+    const diffDays = Math.floor((todayUtc.getTime() - seasonStart.getTime()) / (24 * 3600 * 1000));
+    const weekNum = Math.floor(diffDays / 7);
+    const currentWeekStart = addDaysUTC(seasonStart, weekNum * 7);
+    setViewWeekStart(currentWeekStart);
+  }, []);
 
   const currentConfig = ACTIVITY_CONFIGS[activity];
   const sessionAge = (session?.user as any)?.age as number | undefined;
@@ -749,7 +768,17 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5 text-rfl-light-blue" /> Week {weekNumber}</CardTitle>
+              {(() => {
+                const startStr = formatDateYYYYMMDD(viewWeekStart);
+                const end = new Date(viewWeekStart);
+                end.setUTCDate(viewWeekStart.getUTCDate() + 6);
+                const endStr = formatDateYYYYMMDD(end);
+                const todayUtc = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
+                const isCurrent = (new Date(startStr).getTime() <= todayUtc.getTime()) && (new Date(endStr).getTime() >= todayUtc.getTime());
+                return (
+                  <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5 text-rfl-light-blue" /> Week {weekNumber}{isCurrent ? ' (Current)' : ''}</CardTitle>
+                );
+              })()}
               <div className="flex items-center gap-2">
                 <button
                   className={`p-1 rounded border ${canGoPrev ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
