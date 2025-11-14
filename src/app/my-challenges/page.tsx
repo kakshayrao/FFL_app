@@ -143,7 +143,7 @@ export default function MyChallengesPage() {
                     </span>
                   )}
                   {challengeHasScore[ch.id] && (
-                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
                       Scores Posted
                     </span>
                   )}

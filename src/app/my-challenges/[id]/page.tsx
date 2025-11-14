@@ -44,7 +44,7 @@ function PDFModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) 
             </button>
           </div>
           <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {/* Use object for PDF display (better mobile scrolling support) with iframe fallback */}
+            {/* Native browser PDF viewer - stable and scrollable on all devices */}
             <object data={pdfUrl} type="application/pdf" className="w-full h-full min-h-[72vh]">
               <iframe src={pdfUrl} className="w-full h-full min-h-[72vh]" title="Rules PDF" />
             </object>
