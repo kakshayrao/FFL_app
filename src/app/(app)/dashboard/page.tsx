@@ -672,7 +672,7 @@ export default function DashboardPage() {
                 {/* <div className="p-3 bg-[#abbaab] rounded"> */}
                 <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
-                  <div className="text-lg font-bold text-rfl-navy">{myRestUsed}</div>
+                  <div className="text-lg font-bold text-rfl-coral">{myRestUsed}</div>
                   </div>
                   <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Unused</div>
@@ -807,7 +807,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-rfl-coral">{r.points ?? 0} pt</div>
+                    <div className="font-semibold text-rfl-navy">{r.points ?? 0} pt</div>
                     {r?.status && (
                       <div className={`text-xs inline-block mt-1 px-2 py-0.5 rounded-full ${
                         r.status === 'approved' ? 'bg-blue-100 text-blue-800' :
