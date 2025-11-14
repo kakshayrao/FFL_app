@@ -339,7 +339,7 @@ export default function LeaderboardsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-rfl-navy mb-2">Leaderboard</h1>
-          <p className="text-gray-600">🔥 Today’s Leaderboard – Track your team’s race to the top!</p>
+          <p className="text-gray-600">Track your team’s race to the top!</p>
         </div>
 
         <div className="space-y-6">
@@ -465,28 +465,34 @@ export default function LeaderboardsPage() {
                     setChallengeDropdownOpen((prev) => !prev);
                   }}
                   disabled={isLoadingChallenges || !challenges.length}
-                  className={`flex items-center justify-between w-36 px-2 py-1.5 text-sm border rounded-md transition ${
+                  className={`flex items-center w-36 px-2 py-1.5 text-sm border rounded-md transition ${
                     isLoadingChallenges || !challenges.length
-                      ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
-                      : 'border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent'
+                      ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
+                      : "border-gray-300 bg-white hover:bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent"
                   }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="font-medium text-rfl-navy max-w-[160px] truncate">
+                  {/* make inner area flex-1 with min-w-0 so truncate works reliably */}
+                  <span className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-medium text-rfl-navy truncate">
                       {selectedChallenge
                         ? selectedChallenge.name
                         : isLoadingChallenges
-                          ? 'Loading...'
-                          : 'Select challenge'}
+                          ? "Loading..."
+                          : "Select challenge"}
                     </span>
-                    {selectedChallenge && isActiveChallenge(selectedChallenge) && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
+
+                    {/* ensure badge doesn't shrink */}
+                    {/* {selectedChallenge && isActiveChallenge(selectedChallenge) && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 flex-shrink-0">
                         Active
                       </span>
-                    )}
+                    )} */}
                   </span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${challengeDropdownOpen ? 'rotate-180' : ''}`} />
+
+                  {/* ensure chevron never shrinks or disappears */}
+                  <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${challengeDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
+
                 {challengeDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-md shadow-lg z-20">
                     <div className="py-1 max-h-72 overflow-auto">
@@ -573,8 +579,19 @@ export default function LeaderboardsPage() {
                           <tr key={r.team_id} className={`border-t ${active ? 'hover:bg-gray-50' : ''}`}>
                             <td className="py-2 pr-2 [font-variant-numeric:tabular-nums] text-sm w-12">{idx + 1}</td>
                             <td className="py-2 pr-2">
-                              <span className="text-sm text-rfl-navy font-medium">{r.team_name}</span>
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={`/img/${r.team_name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')}_Logo.jpeg`}
+                                  alt={`${r.team_name} logo`}
+                                  className="w-6 h-6 rounded border border-gray-200 object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/img/placeholder-team.svg';
+                                  }}
+                                />
+                                <span className="text-sm text-rfl-navy font-medium">{r.team_name}</span>
+                              </div>
                             </td>
+
                             <td className="py-2 pr-2 text-right [font-variant-numeric:tabular-nums] font-semibold">
                               {showNotUpdated ? 'Not updated' : (r.score == null ? '' : r.score)}
                             </td>
@@ -588,7 +605,6 @@ export default function LeaderboardsPage() {
             )}
           </CardContent>
         </Card>
-
         </div>
       </div>
     </div>
