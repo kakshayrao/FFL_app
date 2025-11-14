@@ -84,6 +84,12 @@ function formatLocalDateLabel(yyyyMmDd: string): string {
   return localDate.toDateString();
 }
 
+function formatDMY(iso: string) {
+  const [y, m, d] = iso.split('-').map((v) => parseInt(v, 10));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return `${String(dt.getDate()).padStart(2, '0')} ${dt.toLocaleString('en-US', { month: 'short' })}`;
+}
+
 type ActivityConfig = {
   name: string;
   fields: Array<'duration' | 'distance' | 'steps' | 'holes'>;
@@ -193,6 +199,19 @@ export default function DashboardPage() {
   const [myMissedDays, setMyMissedDays] = useState<number>(0);
   const [myRestUsed, setMyRestUsed] = useState<number>(0);
   const [viewWeekStart, setViewWeekStart] = useState<Date>(() => seasonFixedStart());
+
+  // On mount, default view to the current week (Sunday→Saturday) if today falls inside the season
+  useEffect(() => {
+    const today = new Date();
+    const seasonStart = seasonFixedStart();
+    const seasonEnd = seasonFixedEnd();
+    const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    if (todayUtc.getTime() < seasonStart.getTime() || todayUtc.getTime() > seasonEnd.getTime()) return;
+    const diffDays = Math.floor((todayUtc.getTime() - seasonStart.getTime()) / (24 * 3600 * 1000));
+    const weekNum = Math.floor(diffDays / 7);
+    const currentWeekStart = addDaysUTC(seasonStart, weekNum * 7);
+    setViewWeekStart(currentWeekStart);
+  }, []);
 
   const currentConfig = ACTIVITY_CONFIGS[activity];
   const sessionAge = (session?.user as any)?.age as number | undefined;
@@ -657,11 +676,11 @@ export default function DashboardPage() {
               
               {/* Row 1: Points and Avg RR */}
               <div className="grid grid-cols-2 gap-3 text-center mb-4">
-                <div className="p-3 bg-rfl-peach/50 rounded">
+              <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
                   <div className="text-lg font-bold text-rfl-coral">{myPoints}</div>
                 </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Avg RR</div>
                   <div className="text-lg font-bold text-rfl-navy">{myAvgRR !== null ? Number(myAvgRR).toFixed(2) : '—'}</div>
               </div>
@@ -669,15 +688,16 @@ export default function DashboardPage() {
 
               {/* Row 2: Rest Days Used, Rest Days Unused, Missed Days */}
               <div className="grid grid-cols-3 gap-3 text-center mb-4">
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                {/* <div className="p-3 bg-[#abbaab] rounded"> */}
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
-                  <div className="text-lg font-bold text-rfl-navy">{myRestUsed}</div>
+                  <div className="text-lg font-bold text-rfl-coral">{myRestUsed}</div>
                   </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Unused</div>
                   <div className="text-lg font-bold text-rfl-navy">{Math.max(0, 18 - myRestUsed)}</div>
                 </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{myMissedDays}</div>
               </div>
@@ -725,19 +745,19 @@ export default function DashboardPage() {
                   ) : null}
                 </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center ">
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+              <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
                     <div className="text-lg font-bold text-rfl-coral">{teamPoints ?? '—'}</div>
                   </div>
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                     <div className="text-xs text-gray-600">Avg RR</div>
                     <div className="text-lg font-bold text-rfl-navy">{teamAvgRR !== null ? Number(teamAvgRR).toFixed(2) : '—'}</div>
                   </div>
-                  <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamMissedWeek}</div>
                   </div>
-                <div className="p-3 bg-rfl-peach/50 rounded">
+                  <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamRestWeek}</div>
                 </div>
@@ -748,7 +768,17 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5 text-rfl-light-blue" /> Week {weekNumber}</CardTitle>
+              {(() => {
+                const startStr = formatDateYYYYMMDD(viewWeekStart);
+                const end = new Date(viewWeekStart);
+                end.setUTCDate(viewWeekStart.getUTCDate() + 6);
+                const endStr = formatDateYYYYMMDD(end);
+                const todayUtc = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
+                const isCurrent = (new Date(startStr).getTime() <= todayUtc.getTime()) && (new Date(endStr).getTime() >= todayUtc.getTime());
+                return (
+                  <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5 text-rfl-light-blue" /> Week {weekNumber}{isCurrent ? ' (Current)' : ''}</CardTitle>
+                );
+              })()}
               <div className="flex items-center gap-2">
                 <button
                   className={`p-1 rounded border ${canGoPrev ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
@@ -806,7 +836,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-rfl-coral">{r.points ?? 0} pt</div>
+                    <div className="font-semibold text-rfl-navy">{r.points ?? 0} pt</div>
                     {r?.status && (
                       <div className={`text-xs inline-block mt-1 px-2 py-0.5 rounded-full ${
                         r.status === 'approved' ? 'bg-blue-100 text-blue-800' :
@@ -990,5 +1020,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-

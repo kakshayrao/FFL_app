@@ -38,6 +38,12 @@ function formatLocalDateLabel(yyyyMmDd: string): string {
   return dt.toDateString();
 }
 
+function formatDMY(iso: string) {
+  const [y, m, d] = iso.split('-').map(v => parseInt(v, 10));
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  return `${String(dt.getDate()).padStart(2, '0')} ${dt.toLocaleString('en-US', { month: 'short' })}`;
+}
+
 function startOfWeekMondayLocal(d: Date): Date {
   const day = (d.getDay() + 6) % 7; // 0 = Monday
   const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -117,9 +123,10 @@ export default function TeamPage() {
       if (weekStart.getTime() <= today.getTime()) {
         const startStr = weekStart.toISOString().split('T')[0];
         const endStr = weekEndDate.toISOString().split('T')[0];
+        const isCurrentWeek = (new Date(startStr) <= today) && (new Date(endStr) >= today);
         options.push({
           value: `week-${weekNum}`,
-          label: `Week ${weekNum}`
+          label: `Week ${weekNum}${isCurrentWeek ? ' (Current)' : ''}`
         });
       }
       
@@ -129,6 +136,26 @@ export default function TeamPage() {
     
     return options;
   }, []);
+
+  // compute current week value (e.g. 'week-3') if today falls inside season
+  const currentWeekValue = useMemo(() => {
+    const seasonStart = firstWeekStart(0);
+    const seasonEnd = seasonEndStart(0);
+    const today = new Date();
+    if (today.getTime() < seasonStart.getTime()) return null;
+    const weekNum = getWeekNumber(seasonStart, today);
+    const weekStart = addDaysUTC(seasonStart, (weekNum - 1) * 7);
+    if (weekStart.getTime() > seasonEnd.getTime()) return null;
+    return `week-${weekNum}`;
+  }, []);
+
+  // If nothing selected by user (default overall), set to current week so label shows dates
+  useEffect(() => {
+    if (selectedPeriod === 'overall' && currentWeekValue) {
+      setSelectedPeriod(currentWeekValue);
+    }
+    // only run on mount / when currentWeekValue changes
+  }, [currentWeekValue]);
 
   // discover the user's team
   useEffect(() => {
@@ -422,19 +449,19 @@ export default function TeamPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 bg-rfl-peach/50 rounded">
+          <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Points</div>
               <div className="text-lg font-bold text-rfl-coral">{totals.pts}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Avg RR</div>
               <div className="text-lg font-bold text-rfl-navy">{totals.rr}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Days Missed</div>
               <div className="text-lg font-bold text-rfl-navy">{teamMissedDays}</div>
             </div>
-            <div className="p-3 bg-rfl-peach/50 rounded">
+            <div className="p-3 rounded gradient-box text-foreground">
               <div className="text-xs text-gray-600">Rest Days Used</div>
               <div className="text-lg font-bold text-rfl-navy">{teamRestDays}</div>
             </div>

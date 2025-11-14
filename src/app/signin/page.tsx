@@ -52,7 +52,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center px-4 pt-40 pb-12 bg-gradient-to-br from-white via-rfl-peach/30 to-white">
+    <div className="min-h-screen flex items-start justify-center px-4 pt-30 pb-12 bg-gradient-to-br from-white via-rfl-peach/30 to-white">
       <div className="w-full max-w-md">
         {/* Sign In Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
