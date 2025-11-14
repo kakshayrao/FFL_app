@@ -128,7 +128,7 @@ export default function MyChallengesPage() {
               key={ch.id}
               href={`/my-challenges/${ch.id}`}
               className={`flex items-center gap-4 rounded-lg border bg-white px-5 py-4 shadow-sm transition hover:-translate-y-[1px] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rfl-navy ${
-                active ? 'border-green-200 ring-offset-2' : ''
+                active ? 'border-green-300 ring-offset-2' : ''
               }`}
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rfl-navy text-sm font-semibold text-white">
