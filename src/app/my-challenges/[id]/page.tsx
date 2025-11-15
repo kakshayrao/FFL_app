@@ -44,14 +44,7 @@ function PDFModal({ pdfUrl, onClose }: { pdfUrl: string; onClose: () => void }) 
             </button>
           </div>
           <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {/* Use iframe for better mobile inline rendering; falls back to link if unsupported */}
-            <iframe
-              src={pdfUrl}
-              type="application/pdf"
-              className="w-full h-full min-h-[72vh]"
-              title="Rules PDF"
-              style={{ border: 'none' }}
-            />
+            <embed src={pdfUrl} type="application/pdf" className="w-full h-full min-h-[72vh]" />
           </div>
         </div>
       </div>
