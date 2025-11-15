@@ -151,10 +151,8 @@ export default function TeamPage() {
 
   // If nothing selected by user (default overall), set to current week so label shows dates
   useEffect(() => {
-    if (selectedPeriod === 'overall' && currentWeekValue) {
-      setSelectedPeriod(currentWeekValue);
-    }
-    // only run on mount / when currentWeekValue changes
+    // Default to 'overall' — don't auto-switch to current week
+    // User can manually select weeks from dropdown if desired
   }, [currentWeekValue]);
 
   // discover the user's team
