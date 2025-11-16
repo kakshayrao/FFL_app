@@ -39,11 +39,10 @@ export default function SignUpPage() {
         console.error("Error fetching teams:", error);
         // Fallback to hardcoded teams if DB query fails
         setTeams([
-          { id: "gymntonic", name: "Gym n Tonic" },
-          { id: "musclemania", name: "Muscle Mania" },
-          { id: "absolutes", name: "The ABS-OLUTES" },
-          { id: "missionfit", name: "Mission Fitpossible" },
-          { id: "corecrusher", name: "Core Crusher" },
+          { id: "76514ecd-e8c9-4868-892f-30fb2d1c42d6", name: "Crusaders" },
+          { id: "7a9419d7-0c0d-4c2d-b962-24af3448d0b6", name: "Deccan Warriors" },
+          { id: "c55bbcea-25aa-49d3-a84a-e3e398906b22", name: "Unstoppable" },
+          { id: "f3789771-6abf-4f05-9ca1-5fb0e58ee9fe", name: "The Wellness Tribe" },
         ]);
       } else {
         setTeams(data || []);
