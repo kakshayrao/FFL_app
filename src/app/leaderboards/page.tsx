@@ -130,7 +130,7 @@ export default function LeaderboardsPage() {
   }, [page]);
 
   // Utilities for period boundaries (LOCAL date semantics to avoid UTC drift)
-  const seasonStartDate = useMemo(() => new Date(2025, 9, 25), []); // Oct 25 2025 (local)
+  const seasonStartDate = useMemo(() => new Date(2025, 9, 15), []); // Oct 15 2025 (local)
   const startOfLocalDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const todayLocal = () => startOfLocalDay(new Date());
   const ymdLocal = (d: Date) => {

@@ -22,7 +22,7 @@ export default function RulesPage() {
           <div className="flex items-start gap-3">
             <Calendar className="w-5 h-5 text-rfl-coral mt-0.5" />
             <div>
-              <strong>Oct 25, 2025 – Jan 23, 2026</strong>
+              <strong>Oct 15, 2025 – Jan 12, 2026</strong>
               <div className="text-sm text-gray-600">90‑day team challenge to sweat, smile and win.</div>
             </div>
           </div>
