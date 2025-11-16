@@ -59,13 +59,13 @@ function ymd(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// League date functions (fixed season: Oct 25, 2025 → Jan 23, 2026)
+// League date functions (fixed season: Oct 15, 2025 → Jan 12, 2026)
 function firstWeekStart(_year: number): Date {
-  return new Date(Date.UTC(2025, 9, 25)); // Oct 25, 2025
+  return new Date(Date.UTC(2025, 9, 15)); // Oct 15, 2025
 }
 
 function seasonEndStart(_year: number): Date {
-  return new Date(Date.UTC(2026, 0, 23)); // Jan 23, 2026
+  return new Date(Date.UTC(2026, 0, 12)); // Jan 12, 2026
 }
 
 function addDaysUTC(d: Date, days: number): Date {

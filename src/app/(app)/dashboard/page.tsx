@@ -56,17 +56,17 @@ function addDaysUTC(d: Date, days: number): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
 }
 
-// Fixed season window: Oct 25, 2025 → Jan 23, 2026
+// Fixed season window: Oct 15, 2025 → Jan 12, 2026
 function seasonFixedStart(): Date {
-  return new Date(Date.UTC(2025, 9, 25)); // Oct 25, 2025
+  return new Date(Date.UTC(2025, 9, 15)); // Oct 15, 2025
 }
 function seasonFixedEnd(): Date {
-  return new Date(Date.UTC(2026, 0, 23)); // Jan = 0
+  return new Date(Date.UTC(2026, 0, 12)); // Jan = 0
 }
-const SEASON_START_LOCAL_STR = '2025-10-25';
-const SEASON_END_LOCAL_STR = '2026-01-23';
+const SEASON_START_LOCAL_STR = '2025-10-15';
+const SEASON_END_LOCAL_STR = '2026-01-12';
 function firstWeekStart(_year: number): Date {
-  // Week 1 starts exactly on season start (Oct 25, 2025 - Saturday)
+  // Week 1 starts exactly on season start (Oct 15, 2025 - Wednesday)
   return seasonFixedStart();
 }
 function seasonEndStart(_year: number): Date {
@@ -231,7 +231,7 @@ export default function DashboardPage() {
     const t = todayStr();
     setCanLogToday(t >= SEASON_START_LOCAL_STR && t <= SEASON_END_LOCAL_STR);
   }, []);
-  const seasonGuardMsg = 'Season runs Oct 25, 2025 to Jan 23, 2026. Logging opens on Oct 25.';
+  const seasonGuardMsg = 'Season runs Oct 15, 2025 to Jan 12, 2026. Logging opens on Oct 15.';
   
 
   const validateWorkout = useMemo(() => {
