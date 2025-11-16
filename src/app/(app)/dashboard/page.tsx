@@ -9,6 +9,13 @@ import { useSession } from "next-auth/react";
 import { getSupabase, calculateRR } from "@/lib/supabase";
 import TeamProgressChart from "./TeamProgressChart";
 
+// 11-player teams adjustment factor (normalize to 10-player baseline)
+const ELEVEN_PLAYER_TEAMS = new Set<string>([
+  '76514ecd-e8c9-4868-892f-30fb2d1c42d6', // Crusaders (11 players)
+  '7a9419d7-0c0d-4c2d-b962-24af3448d0b6', // Deccan Warriors (11 players)
+]);
+const ELEVEN_TEAM_FACTOR = 10 / 11;
+
 type ActivityRow = {
   date: string;
   type: string | null;
@@ -384,14 +391,24 @@ export default function DashboardPage() {
         const idx = sorted.findIndex(r => String(r[idKey]) === String(tId));
         if (idx >= 0) {
           pos = idx + 1;
-          pts = getNum(sorted[idx][ptsKey]);
+          let rawPts = getNum(sorted[idx][ptsKey]);
+          // Apply adjustment factor for 11-player teams
+          if (ELEVEN_PLAYER_TEAMS.has(String(tId))) {
+            rawPts = rawPts * ELEVEN_TEAM_FACTOR;
+          }
+          pts = Math.round(rawPts);
           rr = getNum(sorted[idx][rrKey]);
         }
       } else if (tName) {
         const idx = sorted.findIndex(r => String(r[nameKey]) === String(tName));
         if (idx >= 0) {
           pos = idx + 1;
-          pts = getNum(sorted[idx][ptsKey]);
+          let rawPts = getNum(sorted[idx][ptsKey]);
+          // Apply adjustment factor for 11-player teams
+          if (tId && ELEVEN_PLAYER_TEAMS.has(String(tId))) {
+            rawPts = rawPts * ELEVEN_TEAM_FACTOR;
+          }
+          pts = Math.round(rawPts);
           rr = getNum(sorted[idx][rrKey]);
         }
       }
