@@ -139,6 +139,12 @@ const ACTIVITY_CONFIGS: Record<string, ActivityConfig> = {
     rules: ["45 mins minimum"],
     minDuration: 45,
   },
+  horse_riding: {
+    name: "Horse Riding",
+    fields: ['duration'],
+    rules: ["45 mins minimum"],
+    minDuration: 45,
+  },
   badminton_pickleball: {
     name: "Badminton/Pickleball",
     fields: ['duration'],
