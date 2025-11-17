@@ -39,7 +39,7 @@ export interface WorkoutEntry {
   team_id: string
   date: string
   type: 'workout' | 'rest'
-  workout_type?: 'walk' | 'gym' | 'yoga' | 'cycling' | 'swimming' | 'badminton_pickleball' | 'basketball_cricket' | 'steps' | 'golf' | 'meditation'
+  workout_type?: 'walk' | 'gym' | 'yoga' | 'cycling' | 'swimming' | 'horse_riding' | 'badminton_pickleball' | 'basketball_cricket' | 'steps' | 'golf' | 'meditation'
   duration?: number // in minutes
   distance?: number // in km
   steps?: number
