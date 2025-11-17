@@ -23,12 +23,13 @@ type Challenge = {
   scores: Record<string, number | null>; // key: team_id
 };
 
-// Display-only proportional adjustment for 13-player teams
-const THIRTEEN_PLAYER_TEAMS = new Set<string>([
-  'dbecc2c2-6184-4692-a0f7-693adeae0b81', // Frolic Fetizens
-  '7059747a-d1b8-479c-aff2-6a6a79c88998', // Interstellar
+// Display-only proportional adjustment for 11-player teams
+// Normalize 11-player team totals to a 10-player baseline by multiplying by 10/11.
+const ELEVEN_PLAYER_TEAMS = new Set<string>([
+  '76514ecd-e8c9-4868-892f-30fb2d1c42d6', // Crusaders (11 players)
+  '7a9419d7-0c0d-4c2d-b962-24af3448d0b6', // Deccan Warriors (11 players)
 ]);
-const THIRTEEN_TEAM_FACTOR = 12 / 13;
+const ELEVEN_TEAM_FACTOR = 10 / 11;
 
 const CHALLENGE_RULES_BUCKET = 'challenge-rules';
 
@@ -414,8 +415,8 @@ export default function GovernorPage() {
           const agg = teamAgg.get(String(t.id)) || { points: 0, rrSum: 0, rrCnt: 0 };
           const avg = agg.rrCnt > 0 ? Math.round((agg.rrSum / agg.rrCnt) * 100) / 100 : 0;
           let adjusted = agg.points;
-          if (THIRTEEN_PLAYER_TEAMS.has(String(t.id))) {
-            adjusted = agg.points * THIRTEEN_TEAM_FACTOR;
+          if (ELEVEN_PLAYER_TEAMS.has(String(t.id))) {
+            adjusted = agg.points * ELEVEN_TEAM_FACTOR;
           }
           const pointsRounded = Math.round(adjusted);
           return { team_id: String(t.id), team_name: String(t.name), points: pointsRounded, avg_rr: avg } as TeamRow;
