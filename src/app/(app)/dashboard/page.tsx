@@ -139,6 +139,12 @@ const ACTIVITY_CONFIGS: Record<string, ActivityConfig> = {
     rules: ["45 mins minimum"],
     minDuration: 45,
   },
+  horse_riding: {
+    name: "Horse Riding",
+    fields: ['duration'],
+    rules: ["45 mins minimum"],
+    minDuration: 45,
+  },
   badminton_pickleball: {
     name: "Badminton/Pickleball",
     fields: ['duration'],
@@ -900,6 +906,7 @@ export default function DashboardPage() {
                 <option value="yoga">Yoga/Pilates/Zumba</option>
                 <option value="cycling">Cycling</option>
                 <option value="swimming">Swimming</option>
+                <option value="horse_riding">Horse Riding</option>
                 <option value="badminton_pickleball">Badminton/Pickleball</option>
                 <option value="basketball_cricket">Basketball/Cricket</option>
                 <option value="steps">Steps</option>

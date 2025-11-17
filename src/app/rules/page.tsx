@@ -53,7 +53,7 @@ export default function RulesPage() {
             <ul className="space-y-2 list-disc list-inside">
               <li><strong>Brisk Walk / Jog / Run</strong> — 4 km OR 45 mins</li>
               <li><strong>Weightlifting / Gym</strong> — 45 mins</li>
-              <li><strong>Yoga / Pilates / Zumba / Dance / Swimming / Cycling</strong> — 45 mins</li>
+              <li><strong>Yoga / Pilates / Zumba / Dance / Swimming / Cycling / Horse Riding</strong> — 45 mins</li>
               <li><strong>Field Sports</strong> (Badminton, Pickleball, Tennis, Cricket, Basketball, etc.) — 45 mins</li>
               <li><strong>Golf</strong> — 9‑hole round</li>
               <li><strong>Steps</strong> — 10,000 steps in a day</li>
