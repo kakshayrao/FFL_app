@@ -50,7 +50,7 @@ function parseYmdLocal(s: string): Date {
   return new Date(y, (m||1)-1, d||1);
 }
 
-const SEASON_START = '2025-10-25';
+const SEASON_START = '2025-10-15';
 
 export default function GovernorPage() {
   const { data: session, status } = useSession();
