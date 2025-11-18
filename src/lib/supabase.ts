@@ -52,20 +52,34 @@ export interface WorkoutEntry {
 
 // Helper functions
 export const calculateRR = (entry: Partial<WorkoutEntry> & { age?: number }): number => {
-  if (entry.type === 'rest') return 1.0
+  if (entry.type === 'rest') return 1.0;
 
-  const isSenior = typeof entry.age === 'number' && entry.age >= 65
-  const baseDuration = isSenior ? 30 : 45
-  const baseSteps = isSenior ? 5000 : 10000
+  let baseDuration = 45;
+  let minSteps = 10000, maxSteps = 20000;
+  if (typeof entry.age === 'number') {
+    if (entry.age > 75) {
+      minSteps = 3000; maxSteps = 6000;
+      baseDuration = 30;
+    } else if (entry.age > 65) {
+      minSteps = 5000; maxSteps = 10000;
+      baseDuration = 30;
+    } else if (entry.age >= 65) {
+      minSteps = 5000; maxSteps = 10000;
+      baseDuration = 30;
+    }
+  }
 
   if (entry.workout_type === 'steps' && entry.steps) {
-    return entry.steps >= baseSteps ? Math.min(entry.steps / baseSteps, 2.5) : 0
+    if (entry.steps < minSteps) return 0;
+    const capped = Math.min(entry.steps, maxSteps);
+    // RR 1 at minSteps, RR 2 at maxSteps
+    return Math.min(1 + (capped - minSteps) / (maxSteps - minSteps), 2.0);
   }
   if (entry.workout_type === 'golf' && entry.holes) {
-    return entry.holes >= 9 ? Math.min(entry.holes / 9, 2.5) : 0
+    return entry.holes >= 9 ? Math.min(entry.holes / 9, 2.5) : 0;
   }
   if (entry.duration) {
-    return entry.duration >= baseDuration ? Math.min(entry.duration / baseDuration, 2.5) : 0
+    return entry.duration >= baseDuration ? Math.min(entry.duration / baseDuration, 2.5) : 0;
   }
-  return 1.0
+  return 1.0;
 }

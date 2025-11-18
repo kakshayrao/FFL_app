@@ -16,9 +16,20 @@ export async function POST(req: NextRequest) {
     .eq('id', session.user.id)
     .maybeSingle();
   const userAge = (acct?.age ?? null) as number | null;
-  const isSenior = typeof userAge === 'number' && userAge >= 65;
-  const baseDuration = isSenior ? 30 : 45; // minutes
-  const baseSteps = isSenior ? 5000 : 10000; // steps
+  let baseDuration = 45;
+  let minSteps = 10000, maxSteps = 20000;
+  if (typeof userAge === 'number') {
+    if (userAge > 75) {
+      minSteps = 3000; maxSteps = 6000;
+      baseDuration = 30;
+    } else if (userAge > 65) {
+      minSteps = 5000; maxSteps = 10000;
+      baseDuration = 30;
+    } else if (userAge >= 65) {
+      minSteps = 5000; maxSteps = 10000;
+      baseDuration = 30;
+    }
+  }
 
   // check existing entry
   const { data: existing } = await getSupabase()
@@ -55,7 +66,13 @@ export async function POST(req: NextRequest) {
 
   // RR calculation with senior thresholds
   if (type === 'rest') payload.rr_value = 1.0;
-  else if (workout_type === 'steps' && steps) payload.rr_value = Math.min(steps / baseSteps, 2.5);
+  else if (workout_type === 'steps' && steps) {
+    if (steps < minSteps) payload.rr_value = 0;
+    else {
+      const capped = Math.min(steps, maxSteps);
+      payload.rr_value = Math.min(1 + (capped - minSteps) / (maxSteps - minSteps), 2.0);
+    }
+  }
   else if (workout_type === 'golf' && holes) payload.rr_value = Math.min(holes / 9, 2.5);
   else if (workout_type === 'run') {
     const rrDur = typeof duration === 'number' ? duration / baseDuration : 0;
