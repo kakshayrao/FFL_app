@@ -139,6 +139,12 @@ const ACTIVITY_CONFIGS: Record<string, ActivityConfig> = {
     rules: ["45 mins minimum"],
     minDuration: 45,
   },
+  horse_riding: {
+    name: "Horse Riding",
+    fields: ['duration'],
+    rules: ["45 mins minimum"],
+    minDuration: 45,
+  },
   badminton_pickleball: {
     name: "Badminton/Pickleball",
     fields: ['duration'],
@@ -246,11 +252,20 @@ export default function DashboardPage() {
     const config = ACTIVITY_CONFIGS[activity];
 
     if (activity === "steps") {
-      const minSteps = isSeniorEffective ? 5000 : (config.minSteps || 0);
+      let minSteps = 10000, maxSteps = 20000;
+      if (typeof sessionAge === 'number') {
+        if (sessionAge > 75) {
+          minSteps = 3000; maxSteps = 6000;
+        } else if (sessionAge > 65) {
+          minSteps = 5000; maxSteps = 10000;
+        } else if (sessionAge >= 65) {
+          minSteps = 5000; maxSteps = 10000;
+        }
+      }
       if (!steps || Number(steps) < minSteps) {
         return { valid: false, error: `Minimum ${minSteps.toLocaleString()} steps required` };
       }
-      return { valid: true, error: "" };
+      return { valid: true, error: `RR 1 at ${minSteps.toLocaleString()} steps, RR 2 at ${maxSteps.toLocaleString()} steps.` };
     }
 
     if (activity === "run") {
@@ -910,7 +925,19 @@ export default function DashboardPage() {
 
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-gray-700">
                 <div className="font-medium text-rfl-navy mb-1">Requirement:</div>
-                <div className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">{activity === 'run' ? `Distance only — min ${isSeniorEffective ? '2.6' : '4'} km. Workout must be completed in one continuous stretch and reflected in the screenshot.` : currentConfig.rules.join(' ')}</div>
+                <div className="text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                  {activity === 'steps' ? (
+                    (() => {
+                      let minSteps = 10000;
+                      if (typeof sessionAge === 'number') {
+                        if (sessionAge > 75) minSteps = 3000;
+                        else if (sessionAge > 65) minSteps = 5000;
+                        else if (sessionAge >= 65) minSteps = 5000;
+                      }
+                      return `${minSteps.toLocaleString()} steps minimum`;
+                    })()
+                  ) : activity === 'run' ? `Distance only — min ${isSeniorEffective ? '2.6' : '4'} km. Workout must be completed in one continuous stretch and reflected in the screenshot.` : currentConfig.rules.join(' ')}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -956,7 +983,15 @@ export default function DashboardPage() {
                   <>
                 {currentConfig.fields.includes('steps') && (
                   <div className={currentConfig.fields.length === 1 ? 'col-span-2' : ''}>
-                    <label className="block text-sm font-medium text-gray-700">Steps{currentConfig.minSteps ? ` — min ${currentConfig.minSteps.toLocaleString()}` : ''}</label>
+                    <label className="block text-sm font-medium text-gray-700">Steps{(() => {
+                      let minSteps = 10000;
+                      if (typeof sessionAge === 'number') {
+                        if (sessionAge > 75) minSteps = 3000;
+                        else if (sessionAge > 65) minSteps = 5000;
+                        else if (sessionAge >= 65) minSteps = 5000;
+                      }
+                      return ` — min ${minSteps.toLocaleString()}`;
+                    })()}</label>
                         <input value={steps ?? ''} onChange={(e)=>{
                           const val = e.target.value.trim();
                           if (val === '' || isIntString(val)) {
