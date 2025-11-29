@@ -85,7 +85,7 @@ export default function GovernorPage() {
   type GovTab = 'teamLeaderboard' | 'challenges' | 'activitySnapshot' | 'leagueSummary' | 'teamSummary' | 'individualLeaderboard';
   const [tab, setTab] = useState<GovTab>('teamLeaderboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  // Sync tab from hash so Navbar mobile links can target sections
+  
   useEffect(() => {
     const applyFromHash = () => {
       if (typeof window === 'undefined') return;
