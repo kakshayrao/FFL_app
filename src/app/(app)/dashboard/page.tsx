@@ -652,15 +652,24 @@ export default function DashboardPage() {
     if (!userId) return;
     if (!canLogToday) { alert(seasonGuardMsg); return; }
     if (todayStr() < SEASON_START_LOCAL_STR || todayStr() > SEASON_END_LOCAL_STR) { alert(seasonGuardMsg); return; }
-    // Enforce: rest day can only be logged for today
-    if (date !== todayStr()) { alert('You can only log a rest day for today.'); return; }
-    
-    const { data: hasExisting } = await getSupabase().rpc("rfl_has_entry_on_date", {
-      p_user_id: userId,
-      p_date: date,
-    });
-    if (hasExisting) {
-      const ok = window.confirm("You already have a log for this day. Overwrite it?");
+    // Allow rest day log for today or yesterday if yesterday's entry was rejected
+    const t = todayStr();
+    const y = yesterdayLocalStr();
+    if (date !== t && date !== y) { alert('You can only log a rest day for today or yesterday.'); return; }
+    if (date === t) {
+      const { data: hasExisting } = await getSupabase().rpc("rfl_has_entry_on_date", {
+        p_user_id: userId,
+        p_date: date,
+      });
+      if (hasExisting) {
+        const ok = window.confirm("You already have a log for this day. Overwrite it?");
+        if (!ok) return;
+      }
+    }
+    if (date === y) {
+      const { data: existingY } = await getSupabase().from('entries').select('id,status').eq('user_id', userId).eq('date', y).maybeSingle();
+      if (!existingY || existingY.status !== 'rejected') { alert('You cannot submit yesterday’s rest day unless your submission yesterday was rejected.'); return; }
+      const ok = window.confirm("You're about to overwrite your rejected rest day entry from yesterday. Continue?");
       if (!ok) return;
     }
     setLoading(true);

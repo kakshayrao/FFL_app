@@ -925,40 +925,6 @@ export default function GovernorPage() {
                     return (
                       <tr key={ch.id} className="border-t align-top">
                         <td className="py-2 pr-2">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                           {!editing ? (
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-rfl-navy">{ch.name}</span>
