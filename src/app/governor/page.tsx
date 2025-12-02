@@ -53,6 +53,7 @@ function formatRangeNoYear(start: string, end: string): string {
   if (!start && !end) return '—';
   if (!start) return `— → ${end}`;
   if (!end) return `${start} → —`;
+  // Extract month-day from YYYY-MM-DD
   const formatMD = (s: string) => {
     const parts = s.split('-');
     if (parts.length < 3) return s;
@@ -84,7 +85,7 @@ export default function GovernorPage() {
   type GovTab = 'teamLeaderboard' | 'challenges' | 'activitySnapshot' | 'leagueSummary' | 'teamSummary' | 'individualLeaderboard';
   const [tab, setTab] = useState<GovTab>('teamLeaderboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  // Sync tab from hash so Navbar mobile links can target sections
+  
   useEffect(() => {
     const applyFromHash = () => {
       if (typeof window === 'undefined') return;
@@ -378,9 +379,10 @@ export default function GovernorPage() {
         setLeagueAccounts(filteredAccounts.map(a=>({ id: String(a.id), role: a.role, team_id: a.team_id ? String(a.team_id) : null, age: (typeof a.age === 'number' ? a.age : null), gender: (a as any).gender ?? null })));
 
         // Entries for season-to-date up to asOf (yesterday local)
-        // Fetch team-wise to avoid 1000-row Supabase limit
+        // Fetch team-wise and user-wise to avoid 1000-row limit
         const all: Array<{ user_id: string; team_id: string | null; type: string; rr_value: number | null; workout_type: string | null; duration: number | null; distance: number | null; steps: number | null; date: string }> = [];
         
+        // Fetch entries for each team
         for (const team of teamList) {
           const { data: teamEnts } = await getSupabase()
             .from('entries')
@@ -392,6 +394,7 @@ export default function GovernorPage() {
           if (teamEnts) all.push(...teamEnts);
         }
         
+        // Also fetch entries with null team_id (if any)
         const { data: nullTeamEnts } = await getSupabase()
           .from('entries')
           .select('user_id,team_id,workout_type,duration,distance,steps,type,status,date,rr_value')
@@ -399,8 +402,7 @@ export default function GovernorPage() {
           .gte('date', SEASON_START)
           .lte('date', asOf)
           .eq('status', 'approved');
-        if (nullTeamEnts) all.push(...nullTeamEnts);
-        
+        if (nullTeamEnts) all.push(...nullTeamEnts);        
         setEntriesForAggregates(all);
         // Build rest-day counts per user for season to date through asOf
         const restMap: Record<string, number> = {};
@@ -923,40 +925,6 @@ export default function GovernorPage() {
                     return (
                       <tr key={ch.id} className="border-t align-top">
                         <td className="py-2 pr-2">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                           {!editing ? (
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-rfl-navy">{ch.name}</span>
