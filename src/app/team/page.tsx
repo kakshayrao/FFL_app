@@ -32,6 +32,30 @@ type PendingEntry = {
   accounts: { first_name: string };
 };
 
+// ---------------------------
+//  ROSTER BALANCING LOGIC
+// ---------------------------
+
+// Canonical "full" roster size (baseline is 10 players)
+const CANONICAL_ROSTER_SIZE = 10;
+
+// Set roster sizes by team name (lowercase)
+const TEAM_ROSTER_SIZES: Record<string, number> = {
+  "crusaders": 11,
+  "deccan warriors": 11,
+  // Add other teams with non-10 rosters here
+  // 10-player teams don't need to be listed (they get 10/10 = 1)
+};
+
+// Returns multiplier: 10/10, 10/11, etc.
+function getRosterFactor(teamName: string): number {
+  const size =
+    TEAM_ROSTER_SIZES[teamName.toLowerCase()] ?? CANONICAL_ROSTER_SIZE;
+
+  if (size <= CANONICAL_ROSTER_SIZE) return 1;
+  return CANONICAL_ROSTER_SIZE / size;
+}
+
 function formatLocalDateLabel(yyyyMmDd: string): string {
   const [y, m, d] = yyyyMmDd.split('-').map(v => parseInt(v, 10));
   const dt = new Date(y, (m || 1) - 1, d || 1);
@@ -92,6 +116,7 @@ export default function TeamPage() {
   }, [role, router]);
   const userId = session?.user?.id;
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState<string>('');
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingEntry[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -160,7 +185,14 @@ export default function TeamPage() {
     if (!userId) return;
     (async () => {
       const { data } = await getSupabase().from('accounts').select('team_id').eq('id', userId).maybeSingle();
-      setTeamId(data?.team_id ?? null);
+      const tid = data?.team_id ?? null;
+      setTeamId(tid);
+      
+      // Fetch team name
+      if (tid) {
+        const { data: teamData } = await getSupabase().from('teams').select('name').eq('id', tid).maybeSingle();
+        setTeamName(teamData?.name ?? '');
+      }
     })();
   }, [userId]);
 
@@ -426,11 +458,14 @@ export default function TeamPage() {
   }, [teamId, page]);
 
   const totals = useMemo(() => {
-    const pts = members.reduce((a, m) => a + (m.approved_points || 0), 0);
+    const rawPts = members.reduce((a, m) => a + (m.approved_points || 0), 0);
+    // Apply roster factor to total points
+    const factor = getRosterFactor(teamName);
+    const pts = Math.round(rawPts * factor);
     const rrVals = members.map(m => m.avg_rr).filter((v): v is number => typeof v === 'number');
     const rr = rrVals.length ? (rrVals.reduce((a,b)=>a+b,0)/rrVals.length) : 0;
     return { pts, rr: Number((Math.round(rr * 100) / 100).toFixed(2)) };
-  }, [members]);
+  }, [members, teamName]);
 
   return (
     <div className="container mx-auto px-4 py-8">
