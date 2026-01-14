@@ -22,8 +22,8 @@ export default function RulesPage() {
           <div className="flex items-start gap-3">
             <Calendar className="w-5 h-5 text-rfl-coral mt-0.5" />
             <div>
-              <strong>Oct 15, 2025 – Jan 12, 2026</strong>
-              <div className="text-sm text-gray-600">90‑day team challenge to sweat, smile and win.</div>
+              <strong>Oct 15, 2025 – Feb 12, 2026</strong>
+              <div className="text-sm text-gray-600">120‑day team challenge to sweat, smile and win.</div>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -36,7 +36,7 @@ export default function RulesPage() {
           <div className="flex items-start gap-3">
             <Trophy className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
-              Fun competitions for extra points. Grand Finale & Awards — around Jan 25th.
+              Fun competitions for extra points. Grand Finale & Awards — around Feb 25th.
             </div>
           </div>
         </CardContent>
@@ -59,7 +59,7 @@ export default function RulesPage() {
               <li><strong>Steps</strong> — 10,000 steps in a day</li>
               <li><strong>65+ (Seniors)</strong>: 30 mins or 5,000 steps count. Seniors‑only extras: meditation, chanting, writing, breathing (pranayama).</li>
             </ul>
-            
+
             <div className="mt-4 space-y-3">
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
                 <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
@@ -87,14 +87,14 @@ export default function RulesPage() {
           <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
             <CheckCircle className="w-6 h-6 text-green-500 mt-0.5 flex-shrink-0" />
             <div className="text-sm sm:text-base">
-              <strong>Accepted:</strong> A single continuous session of at least 45 minutes, completed within 60 minutes. 
+              <strong>Accepted:</strong> A single continuous session of at least 45 minutes, completed within 60 minutes.
               Different activities can be combined (e.g., 20 min run + 25 min weights) as long as they are tracked as one workout.
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
             <X className="w-6 h-6 text-red-500 mt-0.5 flex-shrink-0" />
             <div className="text-sm sm:text-base">
-              <strong>Not Accepted:</strong> Splitting time into separate sessions (e.g., 25 min in the morning + 20 min in the evening) 
+              <strong>Not Accepted:</strong> Splitting time into separate sessions (e.g., 25 min in the morning + 20 min in the evening)
               — the full 45 minutes must be done in one session.
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function RulesPage() {
           </div>
           <div className="flex items-start gap-3">
             <Clock className="w-6 h-6 text-rfl-light-blue mt-0.5 flex-shrink-0" />
-            <span className="text-sm sm:text-base">Keep full 90‑day history on your device for final tally.</span>
+            <span className="text-sm sm:text-base">Keep full 120‑day history on your device for final tally.</span>
           </div>
           <div className="flex items-start gap-3">
             <Users className="w-6 h-6 text-rfl-light-blue mt-0.5 flex-shrink-0" />
@@ -253,7 +253,7 @@ export default function RulesPage() {
         <CardContent className="space-y-3">
           <div className="flex items-start gap-3">
             <Trophy className="w-6 h-6 text-rfl-coral mt-0.5 flex-shrink-0" />
-            <span className="text-sm sm:text-base">On‑site games & challenges for extra points + Awards around <strong>Jan 24–25</strong>.</span>
+            <span className="text-sm sm:text-base">On‑site games & challenges for extra points + Awards around <strong>Feb 24–25</strong>.</span>
           </div>
           <div className="flex items-start gap-3">
             <Trophy className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />

@@ -72,7 +72,7 @@ function startOfWeekMondayLocal(d: Date): Date {
   const day = (d.getDay() + 6) % 7; // 0 = Monday
   const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   copy.setDate(copy.getDate() - day);
-  copy.setHours(0,0,0,0);
+  copy.setHours(0, 0, 0, 0);
   return copy;
 }
 
@@ -83,13 +83,13 @@ function ymd(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// League date functions (fixed season: Oct 15, 2025 → Jan 12, 2026)
+// League date functions (fixed season: Oct 15, 2025 → Feb 12, 2026)
 function firstWeekStart(_year: number): Date {
   return new Date(Date.UTC(2025, 9, 15)); // Oct 15, 2025
 }
 
 function seasonEndStart(_year: number): Date {
-  return new Date(Date.UTC(2026, 0, 12)); // Jan 12, 2026
+  return new Date(Date.UTC(2026, 1, 12)); // Feb 12, 2026
 }
 
 function addDaysUTC(d: Date, days: number): Date {
@@ -133,17 +133,17 @@ export default function TeamPage() {
     const seasonStart = firstWeekStart(0);
     const seasonEnd = seasonEndStart(0);
     const today = new Date();
-    
+
     const options = [{ value: "overall", label: "Season Total" }];
-    
+
     // Add weeks that are completed or currently in progress
     let weekStart = new Date(seasonStart);
     let weekNum = 1;
-    
+
     while (weekStart.getTime() <= Math.min(seasonEnd.getTime(), today.getTime())) {
       const weekEnd = addDaysUTC(weekStart, 6);
       const weekEndDate = new Date(Math.min(weekEnd.getTime(), today.getTime()));
-      
+
       // Include week if it has started (even if not fully completed)
       if (weekStart.getTime() <= today.getTime()) {
         const startStr = weekStart.toISOString().split('T')[0];
@@ -154,11 +154,11 @@ export default function TeamPage() {
           label: `Week ${weekNum}${isCurrentWeek ? ' (Current)' : ''}`
         });
       }
-      
+
       weekStart = addDaysUTC(weekStart, 7);
       weekNum++;
     }
-    
+
     return options;
   }, []);
 
@@ -187,7 +187,7 @@ export default function TeamPage() {
       const { data } = await getSupabase().from('accounts').select('team_id').eq('id', userId).maybeSingle();
       const tid = data?.team_id ?? null;
       setTeamId(tid);
-      
+
       // Fetch team name
       if (tid) {
         const { data: teamData } = await getSupabase().from('teams').select('name').eq('id', tid).maybeSingle();
@@ -208,14 +208,14 @@ export default function TeamPage() {
     // Determine date range based on time period
     let startDate: string | null = null;
     let endDate: string | null = null;
-    
+
     if (timePeriod !== "overall") {
       const currentYear = new Date().getUTCFullYear();
       const seasonStart = firstWeekStart(currentYear);
       const weekNum = parseInt(timePeriod.split('-')[1]);
       const weekStart = addDaysUTC(seasonStart, (weekNum - 1) * 7);
       const weekEnd = addDaysUTC(weekStart, 6);
-      
+
       startDate = weekStart.toISOString().split('T')[0];
       endDate = weekEnd.toISOString().split('T')[0];
     }
@@ -233,11 +233,11 @@ export default function TeamPage() {
       .select('user_id, type, date')
       .eq('team_id', currentTeamId)
       .eq('status', 'approved');
-    
+
     if (startDate && endDate) {
       query = query.gte('date', startDate).lte('date', endDate);
     }
-    
+
     const { data: entries } = await query;
 
     // Calculate rest days
@@ -247,11 +247,11 @@ export default function TeamPage() {
     // Calculate missed days
     const memberSet = new Set(memberIds);
     const byDateUser = new Set((entries || []).map((e: { date: string; user_id: string }) => `${String(e.date)}|${String(e.user_id)}`));
-    
+
     let missed = 0;
     let cur: Date;
     let endDateCalc: Date;
-    
+
     if (timePeriod === "overall") {
       // Overall: from fixed season start through yesterday (do not count today)
       cur = firstWeekStart(0);
@@ -268,15 +268,15 @@ export default function TeamPage() {
       // If current week is ongoing, stop at yesterday; otherwise use week end
       endDateCalc = weekEnd.getTime() >= todayUtc.getTime() ? yesterdayUtc : weekEnd;
     }
-    
+
     while (cur.getTime() <= endDateCalc.getTime()) {
       const ds = cur.toISOString().split('T')[0];
-      memberSet.forEach((uid) => { 
-        if (!byDateUser.has(`${ds}|${uid}`)) missed += 1; 
+      memberSet.forEach((uid) => {
+        if (!byDateUser.has(`${ds}|${uid}`)) missed += 1;
       });
       cur = new Date(cur.getTime() + 24 * 3600 * 1000);
     }
-    
+
     setTeamMissedDays(missed);
   }
 
@@ -318,14 +318,14 @@ export default function TeamPage() {
     // Determine date range based on time period
     let startDate: string | null = null;
     let endDate: string | null = null;
-    
+
     if (timePeriod !== "overall") {
       const currentYear = new Date().getUTCFullYear();
       const seasonStart = firstWeekStart(currentYear);
       const weekNum = parseInt(timePeriod.split('-')[1]);
       const weekStart = addDaysUTC(seasonStart, (weekNum - 1) * 7);
       const weekEnd = addDaysUTC(weekStart, 6);
-      
+
       startDate = weekStart.toISOString().split('T')[0];
       endDate = weekEnd.toISOString().split('T')[0];
     }
@@ -336,11 +336,11 @@ export default function TeamPage() {
       .select('user_id, rr_value, type, date')
       .eq('team_id', currentTeamId)
       .eq('status', 'approved');
-    
+
     if (startDate && endDate) {
       query = query.gte('date', startDate).lte('date', endDate);
     }
-    
+
     const { data: entries } = await query;
 
     const rrAgg = new Map<string, { sum: number; count: number }>();
@@ -378,12 +378,12 @@ export default function TeamPage() {
       set.add(ds);
       datesByUser.set(uid, set);
     });
-    
+
     memberMap.forEach((row, uid) => {
       let missed = 0;
       let cur: Date;
       let endDate: Date;
-      
+
       if (timePeriod === "overall") {
         // Overall: from fixed season start through yesterday (do not count today)
         cur = firstWeekStart(0);
@@ -399,7 +399,7 @@ export default function TeamPage() {
         const yesterdayUtc = new Date(todayUtc.getTime() - 24 * 3600 * 1000);
         endDate = weekEnd.getTime() >= todayUtc.getTime() ? yesterdayUtc : weekEnd;
       }
-      
+
       const set = datesByUser.get(uid) || new Set<string>();
       while (cur.getTime() <= endDate.getTime()) {
         const ds = new Date(cur).toISOString().split('T')[0];
@@ -409,7 +409,7 @@ export default function TeamPage() {
       row.missed_days = missed;
     });
 
-    const sortedMembers = Array.from(memberMap.values()).sort((a,b)=> (b.approved_points||0)-(a.approved_points||0) || ((b.avg_rr||0)-(a.avg_rr||0)) );
+    const sortedMembers = Array.from(memberMap.values()).sort((a, b) => (b.approved_points || 0) - (a.approved_points || 0) || ((b.avg_rr || 0) - (a.avg_rr || 0)));
     setMembers(sortedMembers);
   }
 
@@ -436,7 +436,7 @@ export default function TeamPage() {
       .from('entries')
       .select('id,user_id,date,type,workout_type,duration,distance,steps,holes,rr_value,status,proof_url,accounts!inner(first_name)')
       .eq('team_id', currentTeamId)
-      .eq('status','approved')
+      .eq('status', 'approved')
       .gte('date', startStr)
       .lte('date', endStr)
       .order('date', { ascending: false })
@@ -463,7 +463,7 @@ export default function TeamPage() {
     const factor = getRosterFactor(teamName);
     const pts = Math.round(rawPts * factor);
     const rrVals = members.map(m => m.avg_rr).filter((v): v is number => typeof v === 'number');
-    const rr = rrVals.length ? (rrVals.reduce((a,b)=>a+b,0)/rrVals.length) : 0;
+    const rr = rrVals.length ? (rrVals.reduce((a, b) => a + b, 0) / rrVals.length) : 0;
     return { pts, rr: Number((Math.round(rr * 100) / 100).toFixed(2)) };
   }, [members, teamName]);
 
@@ -475,218 +475,217 @@ export default function TeamPage() {
           <p className="text-gray-600">Your team's progress and participation — all in one view.</p>
         </div>
 
-      <Card className="bg-white shadow-md mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl text-rfl-navy">Team Summary</CardTitle>
-          <CardDescription>Quick overview</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 text-center">
-          <div className="p-3 rounded gradient-box text-foreground">
-              <div className="text-xs text-gray-600">Points</div>
-              <div className="text-lg font-bold text-rfl-coral">{totals.pts}</div>
-            </div>
-            <div className="p-3 rounded gradient-box text-foreground">
-              <div className="text-xs text-gray-600">Avg RR</div>
-              <div className="text-lg font-bold text-rfl-navy">{totals.rr}</div>
-            </div>
-            <div className="p-3 rounded gradient-box text-foreground">
-              <div className="text-xs text-gray-600">Days Missed</div>
-              <div className="text-lg font-bold text-rfl-navy">{teamMissedDays}</div>
-            </div>
-            <div className="p-3 rounded gradient-box text-foreground">
-              <div className="text-xs text-gray-600">Rest Days Used</div>
-              <div className="text-lg font-bold text-rfl-navy">{teamRestDays}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-white shadow-md">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl text-rfl-navy">Members</CardTitle>
-              <CardDescription>Sorted by points & RR</CardDescription>
-            </div>
-            <div className="relative dropdown-container">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent"
-              >
-                <span>{dropdownOptions.find(opt => opt.value === selectedPeriod)?.label || "Season Total"}</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-                  <div className="py-1">
-                    {dropdownOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          setSelectedPeriod(option.value);
-                          setDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                          selectedPeriod === option.value ? 'bg-rfl-coral/10 text-rfl-coral' : 'text-gray-700'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {members.map((m, idx) => (
-              <div key={m.user_id} className="p-3 border rounded">
-                <div className="flex sm:flex-row flex-col sm:items-center sm:justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-rfl-navy text-white flex items-center justify-center font-semibold">{idx+1}</div>
-                    <div className="font-medium text-rfl-navy">{m.name}</div>
-                  </div>
-                  <div className="grid grid-cols-4 sm:gap-6 gap-3 text-xs sm:text-sm w-full sm:w-auto">
-                    <div className="text-center whitespace-nowrap">
-                      <div className="font-semibold text-rfl-coral">{m.approved_points ?? 0}</div>
-                      <div className="text-gray-600">Points</div>
-                    </div>
-                    <div className="text-center whitespace-nowrap">
-                      <div className="font-semibold text-rfl-coral">{m.rest_used ?? 0}</div>
-                      <div className="text-gray-600">Rest</div>
-                    </div>
-                    <div className="text-center whitespace-nowrap">
-                      <div className="font-semibold text-rfl-navy">{m.missed_days ?? 0}</div>
-                      <div className="text-gray-600">Missed</div>
-                    </div>
-                    <div className="text-center whitespace-nowrap">
-                      <div className="font-semibold text-rfl-navy">{typeof m.avg_rr === 'number' ? m.avg_rr : '-'}</div>
-                      <div className="text-gray-600">RR</div>
-                    </div>
-                  </div>
-                </div>
+        <Card className="bg-white shadow-md mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl text-rfl-navy">Team Summary</CardTitle>
+            <CardDescription>Quick overview</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="text-xs text-gray-600">Points</div>
+                <div className="text-lg font-bold text-rfl-coral">{totals.pts}</div>
               </div>
-            ))}
-            {!members.length && <div className="text-gray-600">No data yet.</div>}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Leader approvals */}
-      {session?.user?.role === 'leader' && (
-        <>
-          <Card className="bg-white shadow-md mt-6">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-xl text-rfl-navy">Submitted Entries</CardTitle>
-                  <CardDescription>View and manage submitted entries</CardDescription>
-                </div>
-                <div className="px-3 py-1 text-xs font-semibold rounded-full border bg-white whitespace-nowrap">Submitted: {pendingCount}</div>
+              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="text-xs text-gray-600">Avg RR</div>
+                <div className="text-lg font-bold text-rfl-navy">{totals.rr}</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {pending.map((e) => (
-                  <div key={e.id} className="p-3 border rounded">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium text-rfl-navy truncate">{e.accounts.first_name} — {formatLocalDateLabel(e.date)}</div>
-                        <div className="text-sm text-gray-600">
-                          {e.type === 'rest' ? 'Rest Day' : `${e.workout_type || ''}`}
-                          {e.duration ? ` • ${e.duration}m` : ''}
-                          {e.distance ? ` • ${e.distance}km` : ''}
-                          {e.steps ? ` • ${e.steps} steps` : ''}
-                          {e.holes ? ` • ${e.holes} holes` : ''}
-                          {typeof e.rr_value === 'number' ? ` • RR ${Number(e.rr_value).toFixed(2)}` : ''}
+              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="text-xs text-gray-600">Days Missed</div>
+                <div className="text-lg font-bold text-rfl-navy">{teamMissedDays}</div>
+              </div>
+              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="text-xs text-gray-600">Rest Days Used</div>
+                <div className="text-lg font-bold text-rfl-navy">{teamRestDays}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white shadow-md">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl text-rfl-navy">Members</CardTitle>
+                <CardDescription>Sorted by points & RR</CardDescription>
+              </div>
+              <div className="relative dropdown-container">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rfl-coral focus:border-transparent"
+                >
+                  <span>{dropdownOptions.find(opt => opt.value === selectedPeriod)?.label || "Season Total"}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                    <div className="py-1">
+                      {dropdownOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSelectedPeriod(option.value);
+                            setDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${selectedPeriod === option.value ? 'bg-rfl-coral/10 text-rfl-coral' : 'text-gray-700'
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {members.map((m, idx) => (
+                <div key={m.user_id} className="p-3 border rounded">
+                  <div className="flex sm:flex-row flex-col sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-rfl-navy text-white flex items-center justify-center font-semibold">{idx + 1}</div>
+                      <div className="font-medium text-rfl-navy">{m.name}</div>
+                    </div>
+                    <div className="grid grid-cols-4 sm:gap-6 gap-3 text-xs sm:text-sm w-full sm:w-auto">
+                      <div className="text-center whitespace-nowrap">
+                        <div className="font-semibold text-rfl-coral">{m.approved_points ?? 0}</div>
+                        <div className="text-gray-600">Points</div>
+                      </div>
+                      <div className="text-center whitespace-nowrap">
+                        <div className="font-semibold text-rfl-coral">{m.rest_used ?? 0}</div>
+                        <div className="text-gray-600">Rest</div>
+                      </div>
+                      <div className="text-center whitespace-nowrap">
+                        <div className="font-semibold text-rfl-navy">{m.missed_days ?? 0}</div>
+                        <div className="text-gray-600">Missed</div>
+                      </div>
+                      <div className="text-center whitespace-nowrap">
+                        <div className="font-semibold text-rfl-navy">{typeof m.avg_rr === 'number' ? m.avg_rr : '-'}</div>
+                        <div className="text-gray-600">RR</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!members.length && <div className="text-gray-600">No data yet.</div>}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leader approvals */}
+        {session?.user?.role === 'leader' && (
+          <>
+            <Card className="bg-white shadow-md mt-6">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-rfl-navy">Submitted Entries</CardTitle>
+                    <CardDescription>View and manage submitted entries</CardDescription>
+                  </div>
+                  <div className="px-3 py-1 text-xs font-semibold rounded-full border bg-white whitespace-nowrap">Submitted: {pendingCount}</div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {pending.map((e) => (
+                    <div key={e.id} className="p-3 border rounded">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-medium text-rfl-navy truncate">{e.accounts.first_name} — {formatLocalDateLabel(e.date)}</div>
+                          <div className="text-sm text-gray-600">
+                            {e.type === 'rest' ? 'Rest Day' : `${e.workout_type || ''}`}
+                            {e.duration ? ` • ${e.duration}m` : ''}
+                            {e.distance ? ` • ${e.distance}km` : ''}
+                            {e.steps ? ` • ${e.steps} steps` : ''}
+                            {e.holes ? ` • ${e.holes} holes` : ''}
+                            {typeof e.rr_value === 'number' ? ` • RR ${Number(e.rr_value).toFixed(2)}` : ''}
+                          </div>
+                        </div>
+                        {/* Desktop action group */}
+                        <div className="hidden sm:flex shrink-0 gap-2">
+                          <button className="px-3 py-1 rounded border text-blue-700 border-blue-300 hover:bg-blue-50" onClick={() => setPreviewEntry(e)}>View</button>
+                          <button className="px-3 py-1 rounded border text-red-700 border-red-300 hover:bg-red-50" onClick={async () => {
+                            const confirmed = window.confirm(`Are you sure you want to reject ${e.accounts.first_name}'s entry? This action cannot be undone. Please inform the player to correct and resubmit.`);
+                            if (!confirmed) return;
+                            await getSupabase().from('entries').update({ status: 'rejected' }).eq('id', e.id);
+                            setPending(p => p.filter(x => x.id !== e.id));
+                            if (teamId) { await loadMembersSummary(teamId); await loadPending(teamId, page); }
+                          }}>Don't Accept</button>
                         </div>
                       </div>
-                      {/* Desktop action group */}
-                      <div className="hidden sm:flex shrink-0 gap-2">
-                        <button className="px-3 py-1 rounded border text-blue-700 border-blue-300 hover:bg-blue-50" onClick={()=> setPreviewEntry(e)}>View</button>
-                        <button className="px-3 py-1 rounded border text-red-700 border-red-300 hover:bg-red-50" onClick={async()=>{
+                      {/* Mobile action row */}
+                      <div className="mt-2 flex sm:hidden gap-2">
+                        <button className="flex-1 py-2 rounded border text-blue-700 border-blue-300 hover:bg-blue-50" onClick={() => setPreviewEntry(e)}>View</button>
+                        <button className="flex-1 py-2 rounded border text-red-700 border-red-300 hover:bg-red-50" onClick={async () => {
                           const confirmed = window.confirm(`Are you sure you want to reject ${e.accounts.first_name}'s entry? This action cannot be undone. Please inform the player to correct and resubmit.`);
                           if (!confirmed) return;
                           await getSupabase().from('entries').update({ status: 'rejected' }).eq('id', e.id);
-                          setPending(p=>p.filter(x=>x.id!==e.id));
+                          setPending(p => p.filter(x => x.id !== e.id));
                           if (teamId) { await loadMembersSummary(teamId); await loadPending(teamId, page); }
                         }}>Don't Accept</button>
                       </div>
                     </div>
-                    {/* Mobile action row */}
-                    <div className="mt-2 flex sm:hidden gap-2">
-                      <button className="flex-1 py-2 rounded border text-blue-700 border-blue-300 hover:bg-blue-50" onClick={()=> setPreviewEntry(e)}>View</button>
-                      <button className="flex-1 py-2 rounded border text-red-700 border-red-300 hover:bg-red-50" onClick={async()=>{
-                        const confirmed = window.confirm(`Are you sure you want to reject ${e.accounts.first_name}'s entry? This action cannot be undone. Please inform the player to correct and resubmit.`);
-                        if (!confirmed) return;
-                        await getSupabase().from('entries').update({ status: 'rejected' }).eq('id', e.id);
-                        setPending(p=>p.filter(x=>x.id!==e.id));
-                        if (teamId) { await loadMembersSummary(teamId); await loadPending(teamId, page); }
-                      }}>Don't Accept</button>
+                  ))}
+                  {!pending.length && <div className="text-gray-600">No submitted entries.</div>}
+                </div>
+
+                {/* Pagination */}
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <button
+                    className={`p-1 rounded border ${page > 1 ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={async () => { if (page > 1) setPage(page - 1); }}
+                    aria-label="Previous page"
+                  >
+                    ‹
+                  </button>
+                  <div className="px-3 py-1 rounded bg-gray-100 text-sm font-medium text-gray-800">Page {page}</div>
+                  <button
+                    className={`p-1 rounded border ${page * pageSize < pendingCount ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
+                    onClick={async () => { if (page * pageSize < pendingCount) setPage(page + 1); }}
+                    aria-label="Next page"
+                  >
+                    ›
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Proof preview modal */}
+            {previewEntry && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setPreviewEntry(null)}>
+                <div className="bg-white rounded-lg shadow-xl max-w-3xl w-[90%] p-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end mb-2">
+                    <button className="text-gray-500 hover:text-gray-700" onClick={() => setPreviewEntry(null)}>✕</button>
+                  </div>
+                  {previewEntry.proof_url ? (
+                    <div className="w-full flex justify-center">
+                      <img src={previewEntry.proof_url} alt="Proof" className="max-h-[60vh] object-contain" />
+                    </div>
+                  ) : (
+                    <div className="w-full flex justify-center py-8">
+                      <div className="text-gray-500">No proof image available</div>
+                    </div>
+                  )}
+                  {/* Workout details */}
+                  <div className="mt-6 text-sm text-gray-800">
+                    <div className="font-semibold text-rfl-navy mb-1">Workout Details</div>
+                    <div className="space-y-1">
+                      <div><b>Type:</b> {previewEntry.type === 'rest' ? 'Rest Day' : (previewEntry.workout_type || '—')}</div>
+                      {previewEntry.duration ? <div><b>Duration:</b> {previewEntry.duration} min</div> : null}
+                      {previewEntry.distance ? <div>Distance: {previewEntry.distance} km</div> : null}
+                      {previewEntry.steps ? <div><b>Steps:</b> {previewEntry.steps}</div> : null}
+                      {previewEntry.holes ? <div><b>Holes:</b> {previewEntry.holes}</div> : null}
+                      {typeof previewEntry.rr_value === 'number' ? <div><b>RR:</b> {Number(previewEntry.rr_value).toFixed(2)}</div> : null}
                     </div>
                   </div>
-                ))}
-                {!pending.length && <div className="text-gray-600">No submitted entries.</div>}
+                </div>
               </div>
+            )}
 
-              {/* Pagination */}
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <button
-                  className={`p-1 rounded border ${page > 1 ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
-                  onClick={async()=>{ if (page > 1) setPage(page-1); }}
-                  aria-label="Previous page"
-                >
-                  ‹
-                </button>
-                <div className="px-3 py-1 rounded bg-gray-100 text-sm font-medium text-gray-800">Page {page}</div>
-                <button
-                  className={`p-1 rounded border ${page * pageSize < pendingCount ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}`}
-                  onClick={async()=>{ if (page * pageSize < pendingCount) setPage(page+1); }}
-                  aria-label="Next page"
-                >
-                  ›
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-
-        {/* Proof preview modal */}
-        {previewEntry && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={()=> setPreviewEntry(null)}>
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-[90%] p-3" onClick={(e)=> e.stopPropagation()}>
-              <div className="flex justify-end mb-2">
-                <button className="text-gray-500 hover:text-gray-700" onClick={()=> setPreviewEntry(null)}>✕</button>
-              </div>
-              {previewEntry.proof_url ? (
-                <div className="w-full flex justify-center">
-                  <img src={previewEntry.proof_url} alt="Proof" className="max-h-[60vh] object-contain" />
-                </div>
-              ) : (
-                <div className="w-full flex justify-center py-8">
-                  <div className="text-gray-500">No proof image available</div>
-                </div>
-              )}
-              {/* Workout details */}
-              <div className="mt-6 text-sm text-gray-800">
-                <div className="font-semibold text-rfl-navy mb-1">Workout Details</div>
-                <div className="space-y-1">
-                  <div><b>Type:</b> {previewEntry.type === 'rest' ? 'Rest Day' : (previewEntry.workout_type || '—')}</div>
-                  {previewEntry.duration ? <div><b>Duration:</b> {previewEntry.duration} min</div> : null}
-                  {previewEntry.distance ? <div>Distance: {previewEntry.distance} km</div> : null}
-                  {previewEntry.steps ? <div><b>Steps:</b> {previewEntry.steps}</div> : null}
-                  {previewEntry.holes ? <div><b>Holes:</b> {previewEntry.holes}</div> : null}
-                  {typeof previewEntry.rr_value === 'number' ? <div><b>RR:</b> {Number(previewEntry.rr_value).toFixed(2)}</div> : null}
-                </div>
-              </div>
-            </div>
-          </div>
+          </>
         )}
-
-        </>
-      )}
       </div>
     </div>
   )
