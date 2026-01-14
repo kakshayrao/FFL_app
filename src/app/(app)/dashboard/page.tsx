@@ -47,7 +47,7 @@ function formatLocalYYYYMMDD(d: Date): string {
 
 function yesterdayLocalStr(): string {
   const d = new Date();
-  d.setHours(0,0,0,0);
+  d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - 1);
   return formatLocalYYYYMMDD(d);
 }
@@ -63,15 +63,15 @@ function addDaysUTC(d: Date, days: number): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
 }
 
-// Fixed season window: Oct 15, 2025 → Jan 12, 2026
+// Fixed season window: Oct 15, 2025 → Feb 12, 2026
 function seasonFixedStart(): Date {
   return new Date(Date.UTC(2025, 9, 15)); // Oct 15, 2025
 }
 function seasonFixedEnd(): Date {
-  return new Date(Date.UTC(2026, 0, 12)); // Jan = 0
+  return new Date(Date.UTC(2026, 1, 12)); // Feb = 1
 }
 const SEASON_START_LOCAL_STR = '2025-10-15';
-const SEASON_END_LOCAL_STR = '2026-01-12';
+const SEASON_END_LOCAL_STR = '2026-02-12';
 function firstWeekStart(_year: number): Date {
   // Week 1 starts exactly on season start (Oct 15, 2025 - Wednesday)
   return seasonFixedStart();
@@ -230,7 +230,7 @@ export default function DashboardPage() {
   const sessionAge = (session?.user as any)?.age as number | undefined;
   const isSeniorEffective = (typeof sessionAge === 'number' && sessionAge >= 65) || isSenior;
   const PROOF_BUCKET = (process.env.NEXT_PUBLIC_PROOF_BUCKET as string) || 'rofl_proof_pics';
-  
+
   // Governors should not see the player dashboard; redirect to governor view
   useEffect(() => {
     if (role === 'governor') {
@@ -244,8 +244,8 @@ export default function DashboardPage() {
     const t = todayStr();
     setCanLogToday(t >= SEASON_START_LOCAL_STR && t <= SEASON_END_LOCAL_STR);
   }, []);
-  const seasonGuardMsg = 'Season runs Oct 15, 2025 to Jan 12, 2026. Logging opens on Oct 15.';
-  
+  const seasonGuardMsg = 'Season runs Oct 15, 2025 to Feb 12, 2026. Logging opens on Oct 15.';
+
 
   const validateWorkout = useMemo(() => {
     if (!userId) return { valid: false, error: "" };
@@ -327,7 +327,7 @@ export default function DashboardPage() {
       .lte('date', formatDateYYYYMMDD(we))
       .order('date', { ascending: true });
     if (error) return;
-    const entries = (data || []) as Array<Omit<ActivityRow,'points'>>;
+    const entries = (data || []) as Array<Omit<ActivityRow, 'points'>>;
     const filled: ActivityRow[] = [];
     let restCount = 0;
     for (let i = 0; i < 7; i++) {
@@ -389,12 +389,12 @@ export default function DashboardPage() {
       const findKey = (obj: Record<string, unknown>, keys: string[]): string | null => {
         for (const k of keys) if (k in obj) return k; return null;
       };
-      const idKey = rowsAny[0] ? (findKey(rowsAny[0], ['team_id','id','teamid']) || 'team_id') : 'team_id';
-      const nameKey = rowsAny[0] ? (findKey(rowsAny[0], ['team_name','name']) || 'team_name') : 'team_name';
-      const ptsKey = rowsAny[0] ? (findKey(rowsAny[0], ['points','total_points','sum_points']) || 'points') : 'points';
-      const rrKey = rowsAny[0] ? (findKey(rowsAny[0], ['avg_rr','average_rr','rr']) || 'avg_rr') : 'avg_rr';
+      const idKey = rowsAny[0] ? (findKey(rowsAny[0], ['team_id', 'id', 'teamid']) || 'team_id') : 'team_id';
+      const nameKey = rowsAny[0] ? (findKey(rowsAny[0], ['team_name', 'name']) || 'team_name') : 'team_name';
+      const ptsKey = rowsAny[0] ? (findKey(rowsAny[0], ['points', 'total_points', 'sum_points']) || 'points') : 'points';
+      const rrKey = rowsAny[0] ? (findKey(rowsAny[0], ['avg_rr', 'average_rr', 'rr']) || 'avg_rr') : 'avg_rr';
 
-      const sorted = [...rowsAny].sort((a,b)=>{
+      const sorted = [...rowsAny].sort((a, b) => {
         const dp = getNum(b[ptsKey]) - getNum(a[ptsKey]);
         if (dp !== 0) return dp;
         return getNum(b[rrKey]) - getNum(a[rrKey]);
@@ -458,7 +458,7 @@ export default function DashboardPage() {
       // Calculate my stats
       const points = entries.length; // every approved entry counts 1
       const rrVals = entries.map(e => (typeof e.rr_value === 'number' ? e.rr_value : Number(e.rr_value || 0))).filter(v => v > 0);
-      const avgRR = rrVals.length ? Math.round((rrVals.reduce((a,b)=>a+b,0)/rrVals.length)*100)/100 : null;
+      const avgRR = rrVals.length ? Math.round((rrVals.reduce((a, b) => a + b, 0) / rrVals.length) * 100) / 100 : null;
       const restUsed = entries.filter(e => String(e.type) === 'rest').length;
 
       // Calculate missed days (days from season start through yesterday with no entry).
@@ -498,14 +498,14 @@ export default function DashboardPage() {
       const yesterdayCutoff2 = new Date(today.getTime() - 24 * 3600 * 1000);
       const seasonStartStr = SEASON_START_LOCAL_STR;
       const todayLocalStr = formatLocalYYYYMMDD(today);
-      
+
       // Fetch team members
       const { data: teamUsers } = await getSupabase()
         .from('accounts')
         .select('id')
         .eq('team_id', effectiveTeamId);
-      const memberIds = ((teamUsers || []) as Array<{ id: string }>).map((u)=> String(u.id));
-      
+      const memberIds = ((teamUsers || []) as Array<{ id: string }>).map((u) => String(u.id));
+
       // Fetch all approved entries for the team for the season
       const { data } = await getSupabase()
         .from('entries')
@@ -517,10 +517,10 @@ export default function DashboardPage() {
       const entries = (data || []) as Array<{ id: string; user_id: string; date: string; type: string | null; rr_value: number | null }>;
       const teamPts = entries.length; // every approved entry counts 1
       const rrVals = entries.map(e => (typeof e.rr_value === 'number' ? e.rr_value : Number(e.rr_value || 0))).filter(v => v > 0);
-      const teamRR = rrVals.length ? Math.round((rrVals.reduce((a,b)=>a+b,0)/rrVals.length)*100)/100 : null;
+      const teamRR = rrVals.length ? Math.round((rrVals.reduce((a, b) => a + b, 0) / rrVals.length) * 100) / 100 : null;
       // Team rest days (approved)
       const restUsed = entries.filter(e => String(e.type) === 'rest').length;
-      
+
       // Team missed days: per member per day with no entry from season start through yesterday
       const memberSet = new Set(memberIds);
       const byDateUser = new Set(entries.map(e => `${String(e.date)}|${String(e.user_id)}`));
@@ -529,7 +529,7 @@ export default function DashboardPage() {
         let day = new Date(seasonStart);
         while (day.getTime() <= yesterdayCutoff2.getTime()) {
           const ds = formatLocalYYYYMMDD(new Date(day));
-          memberSet.forEach((uid)=>{ if (!byDateUser.has(`${ds}|${uid}`)) missed += 1; });
+          memberSet.forEach((uid) => { if (!byDateUser.has(`${ds}|${uid}`)) missed += 1; });
           day = new Date(day.getTime() + 24 * 3600 * 1000);
         }
       }
@@ -603,23 +603,23 @@ export default function DashboardPage() {
           const ok = window.confirm(
             "Your workout looks long and has been selected for verification. Only active minutes count — any mismatch may reduce RR or lose points. Screenshot showing avg heart rate and calories is preferred"
           );
-      if (!ok) return;
-    }
+          if (!ok) return;
+        }
       }
-    } catch {}
+    } catch { }
 
     setLoading(true);
     try {
       // 1) Upload proof image to Supabase Storage (required)
       let proofUrl: string | null = null;
       if (proofFile) {
-      const safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `${userId}/${date}/${Date.now()}-${safeName}`;
-      const { error: uploadErr } = await getSupabase().storage.from(PROOF_BUCKET).upload(filePath, proofFile, {
-        cacheControl: '3600', upsert: true, contentType: proofFile.type || 'image/jpeg'
-      });
-      if (uploadErr) { setProofError('Upload failed, please try again.'); throw uploadErr; }
-      const { data: pub } = getSupabase().storage.from(PROOF_BUCKET).getPublicUrl(filePath);
+        const safeName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${userId}/${date}/${Date.now()}-${safeName}`;
+        const { error: uploadErr } = await getSupabase().storage.from(PROOF_BUCKET).upload(filePath, proofFile, {
+          cacheControl: '3600', upsert: true, contentType: proofFile.type || 'image/jpeg'
+        });
+        if (uploadErr) { setProofError('Upload failed, please try again.'); throw uploadErr; }
+        const { data: pub } = getSupabase().storage.from(PROOF_BUCKET).getPublicUrl(filePath);
         proofUrl = pub?.publicUrl || null;
       }
 
@@ -692,7 +692,7 @@ export default function DashboardPage() {
     1,
     Math.floor(
       (viewWeekStart.getTime() - seasonStart.getTime()) /
-        (7 * 24 * 3600 * 1000)
+      (7 * 24 * 3600 * 1000)
     ) + 1
   );
   return (
@@ -702,30 +702,30 @@ export default function DashboardPage() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-rfl-navy mb-2">Welcome, {session?.user?.name?.split(' ')[0] || 'User'}!</h1>
           <p className="text-gray-600">Let's crush those fitness goals today 💪</p>
-      </div>
+        </div>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Button disabled={!canLogToday} className="bg-rfl-navy hover:bg-rfl-navy/70 text-white h-8 flex-1 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenWorkout(true); }}>Add Workout</Button>
-              <Button disabled={!canLogToday} variant="outline" className="h-8 flex-1 border-black text-rfl-navy hover:bg-rfl-navy/70 disabled:opacity-50" onClick={() => { if(!canLogToday){alert(seasonGuardMsg);return;} setDate(todayStr()); setOpenRest(true); }}>Add Rest Day</Button>
+              <Button disabled={!canLogToday} className="bg-rfl-navy hover:bg-rfl-navy/70 text-white h-8 flex-1 disabled:opacity-50" onClick={() => { if (!canLogToday) { alert(seasonGuardMsg); return; } setDate(todayStr()); setOpenWorkout(true); }}>Add Workout</Button>
+              <Button disabled={!canLogToday} variant="outline" className="h-8 flex-1 border-black text-rfl-navy hover:bg-rfl-navy/70 disabled:opacity-50" onClick={() => { if (!canLogToday) { alert(seasonGuardMsg); return; } setDate(todayStr()); setOpenRest(true); }}>Add Rest Day</Button>
             </div>
           </CardHeader>
           <CardContent>
             {/* My Summary */}
             <div className="rounded-lg border bg-white p-3 sm:p-4 mb-4">
               <div className="text-sm font-semibold text-rfl-navy mb-2">My Summary</div>
-              
+
               {/* Row 1: Points and Avg RR */}
               <div className="grid grid-cols-2 gap-3 text-center mb-4">
-              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
                   <div className="text-lg font-bold text-rfl-coral">{myPoints}</div>
                 </div>
                 <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Avg RR</div>
                   <div className="text-lg font-bold text-rfl-navy">{myAvgRR !== null ? Number(myAvgRR).toFixed(2) : '—'}</div>
+                </div>
               </div>
-                  </div>
 
               {/* Row 2: Rest Days Used, Rest Days Unused, Missed Days */}
               <div className="grid grid-cols-3 gap-3 text-center mb-4">
@@ -733,16 +733,16 @@ export default function DashboardPage() {
                 <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
                   <div className="text-lg font-bold text-rfl-coral">{myRestUsed}</div>
-                  </div>
-                  <div className="p-3 rounded gradient-box text-foreground">
+                </div>
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Unused</div>
                   <div className="text-lg font-bold text-rfl-navy">{Math.max(0, 18 - myRestUsed)}</div>
                 </div>
                 <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{myMissedDays}</div>
+                </div>
               </div>
-            </div>
 
               {/* Row 3: Avg RR — You vs Team */}
               <div className="rounded-lg border bg-white p-3 sm:p-4">
@@ -776,29 +776,29 @@ export default function DashboardPage() {
                 })()}
               </div>
             </div>
-            
+
             {/* Team Summary */}
-              <div className="rounded-lg border bg-white p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold text-rfl-navy">Team Summary {teamName ? `— ${teamName}` : ''}</div>
-                  {teamPosition ? (
-                    <div className="text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white">Position #{teamPosition}</div>
-                  ) : null}
-                </div>
+            <div className="rounded-lg border bg-white p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-semibold text-rfl-navy">Team Summary {teamName ? `— ${teamName}` : ''}</div>
+                {teamPosition ? (
+                  <div className="text-xs px-2 py-0.5 rounded-full bg-rfl-coral text-white">Position #{teamPosition}</div>
+                ) : null}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center ">
-              <div className="p-3 rounded gradient-box text-foreground">
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Points</div>
-                    <div className="text-lg font-bold text-rfl-coral">{teamPoints ?? '—'}</div>
-                  </div>
-                  <div className="p-3 rounded gradient-box text-foreground">
-                    <div className="text-xs text-gray-600">Avg RR</div>
-                    <div className="text-lg font-bold text-rfl-navy">{teamAvgRR !== null ? Number(teamAvgRR).toFixed(2) : '—'}</div>
-                  </div>
-                  <div className="p-3 rounded gradient-box text-foreground">
+                  <div className="text-lg font-bold text-rfl-coral">{teamPoints ?? '—'}</div>
+                </div>
+                <div className="p-3 rounded gradient-box text-foreground">
+                  <div className="text-xs text-gray-600">Avg RR</div>
+                  <div className="text-lg font-bold text-rfl-navy">{teamAvgRR !== null ? Number(teamAvgRR).toFixed(2) : '—'}</div>
+                </div>
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Days Missed</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamMissedWeek}</div>
-                  </div>
-                  <div className="p-3 rounded gradient-box text-foreground">
+                </div>
+                <div className="p-3 rounded gradient-box text-foreground">
                   <div className="text-xs text-gray-600">Rest Days Used</div>
                   <div className="text-lg font-bold text-rfl-navy">{teamRestWeek}</div>
                 </div>
@@ -862,27 +862,26 @@ export default function DashboardPage() {
                               </div>
                             )
                             : (() => {
-                                const cfg = ACTIVITY_CONFIGS[r.workout_type || ''] as any;
-                                const label = cfg?.name ? String(cfg.name).split(' / ')[0] : (r.workout_type || 'Activity');
-                                const metric = r.duration ? `${r.duration} mins` : (r.distance ? `${r.distance} km` : (r.steps ? `${Number(r.steps).toLocaleString()} steps` : (r.holes ? `${r.holes} holes` : '')));
-                                return (
-                                  <div>
-                                    <div>{label}{metric ? ` (${metric})` : ''}</div>
-                                    {typeof r.rr_value === 'number' && <div>RR: {Number(r.rr_value).toFixed(2)}</div>}
-                                  </div>
-                                );
-                              })()
-                          )
+                              const cfg = ACTIVITY_CONFIGS[r.workout_type || ''] as any;
+                              const label = cfg?.name ? String(cfg.name).split(' / ')[0] : (r.workout_type || 'Activity');
+                              const metric = r.duration ? `${r.duration} mins` : (r.distance ? `${r.distance} km` : (r.steps ? `${Number(r.steps).toLocaleString()} steps` : (r.holes ? `${r.holes} holes` : '')));
+                              return (
+                                <div>
+                                  <div>{label}{metric ? ` (${metric})` : ''}</div>
+                                  {typeof r.rr_value === 'number' && <div>RR: {Number(r.rr_value).toFixed(2)}</div>}
+                                </div>
+                              );
+                            })()
+                        )
                         : 'No Entry'}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-rfl-navy">{r.points ?? 0} pt</div>
                     {r?.status && (
-                      <div className={`text-xs inline-block mt-1 px-2 py-0.5 rounded-full ${
-                        r.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                      }`}>{r.status === 'approved' ? 'submitted' : r.status}</div>
+                      <div className={`text-xs inline-block mt-1 px-2 py-0.5 rounded-full ${r.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                          r.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                        }`}>{r.status === 'approved' ? 'submitted' : r.status}</div>
                     )}
                   </div>
                 </div>
@@ -907,18 +906,18 @@ export default function DashboardPage() {
             )}
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">Workout Date</label>
-              <select value={date} onChange={(e)=> setDate(e.target.value)} className="w-full border rounded-md px-3 py-2 bg-white">
+              <select value={date} onChange={(e) => setDate(e.target.value)} className="w-full border rounded-md px-3 py-2 bg-white">
                 {(() => {
                   const today = todayStr();
                   const y = yesterdayLocalStr();
-                  const opts: Array<{value:string; label:string}> = [];
+                  const opts: Array<{ value: string; label: string }> = [];
                   if (today >= SEASON_START_LOCAL_STR && today <= SEASON_END_LOCAL_STR) opts.push({ value: today, label: 'Today' });
                   if (y >= SEASON_START_LOCAL_STR && y <= SEASON_END_LOCAL_STR) opts.push({ value: y, label: 'Yesterday' });
                   return opts.map(opt => <option key={opt.value} value={opt.value}>{opt.label} ({opt.value})</option>);
                 })()}
               </select>
               <label className="block text-sm font-medium text-gray-700">Workout Type</label>
-              <select value={activity} onChange={(e)=>setActivity(e.target.value)} className="w-full border rounded-md px-3 py-2">
+              <select value={activity} onChange={(e) => setActivity(e.target.value)} className="w-full border rounded-md px-3 py-2">
                 <option value="run">Brisk Walk/Jog/Run</option>
                 <option value="gym">Weightlifting / Gym Workout</option>
                 <option value="yoga">Yoga/Pilates/Zumba</option>
@@ -953,8 +952,8 @@ export default function DashboardPage() {
                 {currentConfig.fields.includes('duration') && (
                   <div className={currentConfig.fields.length === 1 ? 'col-span-2' : 'flex items-end gap-2'}>
                     <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Duration (mins){currentConfig.minDuration ? ` — min ${currentConfig.minDuration}` : ''}</label>
-                      <input value={duration ?? ''} onChange={(e)=>{
+                      <label className="block text-sm font-medium text-gray-700">Duration (mins){currentConfig.minDuration ? ` — min ${currentConfig.minDuration}` : ''}</label>
+                      <input value={duration ?? ''} onChange={(e) => {
                         const val = e.target.value.trim();
                         if (val === '' || isIntString(val)) {
                           setDuration(val === '' ? '' : Number(val));
@@ -970,7 +969,7 @@ export default function DashboardPage() {
                 {currentConfig.fields.includes('distance') && (
                   <div className={currentConfig.fields.length === 1 ? 'col-span-2' : 'flex-1'}>
                     <label className="block text-sm font-medium text-gray-700">Distance (km){currentConfig.minDistance ? ` — min ${currentConfig.minDistance}` : ''}</label>
-                    <input value={typeof distance === 'number' ? String(distance) : distance} onChange={(e)=>{
+                    <input value={typeof distance === 'number' ? String(distance) : distance} onChange={(e) => {
                       const raw = e.target.value;
                       const val = raw.trim();
                       if (val === '' || isDecimalString(val)) {
@@ -983,25 +982,25 @@ export default function DashboardPage() {
                     }} inputMode="decimal" min={0} step="0.1" className="w-full border rounded-md px-3 py-2" />
                   </div>
                 )}
-              {activity === 'golf' ? (
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Holes (golf){currentConfig.minHoles ? ` — min ${currentConfig.minHoles}` : ''}</label>
-                  <input value={holes ?? ''} onChange={(e)=>{ setHoles(e.target.value === '' ? '' : Number(e.target.value)); setValidationError(""); }} type="number" min={0} className="w-full border rounded-md px-3 py-2" />
-                </div>
-              ) : (
+                {activity === 'golf' ? (
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Holes (golf){currentConfig.minHoles ? ` — min ${currentConfig.minHoles}` : ''}</label>
+                    <input value={holes ?? ''} onChange={(e) => { setHoles(e.target.value === '' ? '' : Number(e.target.value)); setValidationError(""); }} type="number" min={0} className="w-full border rounded-md px-3 py-2" />
+                  </div>
+                ) : (
                   <>
-                {currentConfig.fields.includes('steps') && (
-                  <div className={currentConfig.fields.length === 1 ? 'col-span-2' : ''}>
-                    <label className="block text-sm font-medium text-gray-700">Steps{(() => {
-                      let minSteps = 10000;
-                      if (typeof sessionAge === 'number') {
-                        if (sessionAge > 75) minSteps = 3000;
-                        else if (sessionAge > 65) minSteps = 5000;
-                        else if (sessionAge >= 65) minSteps = 5000;
-                      }
-                      return ` — min ${minSteps.toLocaleString()}`;
-                    })()}</label>
-                        <input value={steps ?? ''} onChange={(e)=>{
+                    {currentConfig.fields.includes('steps') && (
+                      <div className={currentConfig.fields.length === 1 ? 'col-span-2' : ''}>
+                        <label className="block text-sm font-medium text-gray-700">Steps{(() => {
+                          let minSteps = 10000;
+                          if (typeof sessionAge === 'number') {
+                            if (sessionAge > 75) minSteps = 3000;
+                            else if (sessionAge > 65) minSteps = 5000;
+                            else if (sessionAge >= 65) minSteps = 5000;
+                          }
+                          return ` — min ${minSteps.toLocaleString()}`;
+                        })()}</label>
+                        <input value={steps ?? ''} onChange={(e) => {
                           const val = e.target.value.trim();
                           if (val === '' || isIntString(val)) {
                             setSteps(val === '' ? '' : Number(val));
@@ -1010,21 +1009,21 @@ export default function DashboardPage() {
                             setValidationError("Enter numbers only (no letters)");
                           }
                         }} inputMode="numeric" pattern="\\d*" min={0} className="w-full border rounded-md px-3 py-2" />
-                  </div>
-                )}
-                {currentConfig.fields.includes('holes') && (
-                  <div className={currentConfig.fields.length === 1 ? 'col-span-2' : ''}>
-                    <label className="block text-sm font-medium text-gray-700">Holes (golf){currentConfig.minHoles ? ` — min ${currentConfig.minHoles}` : ''}</label>
-                  <input value={holes ?? ''} onChange={(e)=>{
-                    const val = e.target.value.trim();
-                    if (val === '' || isIntString(val)) {
-                      setHoles(val === '' ? '' : Number(val));
-                      setValidationError("");
-                    } else {
-                      setValidationError("Enter numbers only (no letters)");
-                    }
-                  }} inputMode="numeric" pattern="\\d*" min={0} className="w-full border rounded-md px-3 py-2" />
-                  </div>
+                      </div>
+                    )}
+                    {currentConfig.fields.includes('holes') && (
+                      <div className={currentConfig.fields.length === 1 ? 'col-span-2' : ''}>
+                        <label className="block text-sm font-medium text-gray-700">Holes (golf){currentConfig.minHoles ? ` — min ${currentConfig.minHoles}` : ''}</label>
+                        <input value={holes ?? ''} onChange={(e) => {
+                          const val = e.target.value.trim();
+                          if (val === '' || isIntString(val)) {
+                            setHoles(val === '' ? '' : Number(val));
+                            setValidationError("");
+                          } else {
+                            setValidationError("Enter numbers only (no letters)");
+                          }
+                        }} inputMode="numeric" pattern="\\d*" min={0} className="w-full border rounded-md px-3 py-2" />
+                      </div>
                     )}
                   </>
                 )}
@@ -1036,7 +1035,7 @@ export default function DashboardPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e)=>{ setProofFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setProofError(""); }}
+                  onChange={(e) => { setProofFile(e.target.files && e.target.files[0] ? e.target.files[0] : null); setProofError(""); }}
                   className="w-full border rounded-md px-3 py-2"
                 />
                 <div className="text-xs text-gray-500 mt-1">Required. Screenshots/photos only.</div>
@@ -1061,11 +1060,11 @@ export default function DashboardPage() {
               <div className="text-sm text-rfl-navy font-semibold">You are taking a rest day. You have {Math.max(0, 18 - myRestUsed)} / 18 rest days left.</div>
               <div className="text-sm text-gray-700">Rest days remaining: <span className="font-semibold">{Math.max(0, 18 - myRestUsed)}</span> / 18</div>
               <label className="block text-sm font-medium text-gray-700">Workout Date</label>
-              <select value={date} onChange={(e)=> setDate(e.target.value)} className="w-full border rounded-md px-3 py-2 bg-white">
+              <select value={date} onChange={(e) => setDate(e.target.value)} className="w-full border rounded-md px-3 py-2 bg-white">
                 {(() => {
                   const today = todayStr();
                   const y = yesterdayLocalStr();
-                  const opts: Array<{value:string; label:string}> = [];
+                  const opts: Array<{ value: string; label: string }> = [];
                   if (today >= SEASON_START_LOCAL_STR && today <= SEASON_END_LOCAL_STR) opts.push({ value: today, label: 'Today' });
                   if (y >= SEASON_START_LOCAL_STR && y <= SEASON_END_LOCAL_STR) opts.push({ value: y, label: 'Yesterday' });
                   return opts.map(opt => <option key={opt.value} value={opt.value}>{opt.label} ({opt.value})</option>);
